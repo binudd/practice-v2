@@ -25,7 +25,7 @@ export function OverviewManagerView() {
   const myProjects = projects.filter((p) => p.status === 'active').slice(0, 6);
 
   return (
-    <DashboardContent maxWidth="xl">
+    <DashboardContent>
       <Grid container spacing={3}>
         <Grid xs={12}>
           <AppWelcome

@@ -30,7 +30,7 @@ export function OverviewSuperAdminView() {
   const { projects } = useGetProjects();
 
   return (
-    <DashboardContent maxWidth="xl">
+    <DashboardContent>
       <Grid container spacing={3}>
         <Grid xs={12}>
           <AppWelcome

@@ -31,7 +31,7 @@ export function OverviewAdminView() {
   const completedTasks = projects.reduce((sum, p) => sum + p.completedTasks, 0);
 
   return (
-    <DashboardContent maxWidth="xl">
+    <DashboardContent>
       <Grid container spacing={3}>
         <Grid xs={12}>
           <AppWelcome

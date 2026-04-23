@@ -88,7 +88,7 @@ export function OverviewMemberView() {
   );
 
   return (
-    <DashboardContent maxWidth="xl">
+    <DashboardContent>
       <Grid container spacing={3}>
         <Grid xs={12}>
           <AppWelcome

@@ -100,7 +100,7 @@ export function CalendarView() {
 
   return (
     <>
-      <DashboardContent maxWidth="xl" sx={{ ...flexProps }}>
+      <DashboardContent sx={{ ...flexProps }}>
         <Stack
           direction="row"
           alignItems="center"

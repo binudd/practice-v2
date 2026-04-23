@@ -30,7 +30,7 @@ export function OverviewAppView() {
   const theme = useTheme();
 
   return (
-    <DashboardContent maxWidth="xl">
+    <DashboardContent>
       <Grid container spacing={3}>
         <Grid xs={12} md={8}>
           <AppWelcome
