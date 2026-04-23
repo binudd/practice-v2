@@ -64,7 +64,7 @@ export const navData = [
         ],
       },
       {
-        title: 'Kanban',
+        title: 'My Work',
         path: paths.dashboard.kanban,
         icon: ICONS.kanban,
         roles: WORKSPACE,

@@ -64,7 +64,7 @@ type Props = {
   title?: string;
 };
 
-export function KanbanView({ projectId, title = 'Kanban' }: Props = {}) {
+export function KanbanView({ projectId, title = 'My Work' }: Props = {}) {
   const { board, boardLoading, boardEmpty } = useGetBoard(projectId);
 
   const [columnFixed, setColumnFixed] = useState(true);
