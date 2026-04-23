@@ -261,7 +261,6 @@ export function ProjectListView() {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading="Projects"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'Projects', href: paths.dashboard.project.root },

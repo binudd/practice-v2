@@ -29,7 +29,6 @@ import {
 
 import Stack from '@mui/material/Stack';
 import Switch from '@mui/material/Switch';
-import Typography from '@mui/material/Typography';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { hideScrollY } from 'src/theme/styles';
@@ -64,7 +63,7 @@ type Props = {
   title?: string;
 };
 
-export function KanbanView({ projectId, title = 'My Work' }: Props = {}) {
+export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {}) {
   const { board, boardLoading, boardEmpty } = useGetBoard(projectId);
 
   const [columnFixed, setColumnFixed] = useState(true);
@@ -359,11 +358,9 @@ export function KanbanView({ projectId, title = 'My Work' }: Props = {}) {
       <Stack
         direction="row"
         alignItems="center"
-        justifyContent="space-between"
+        justifyContent="flex-end"
         sx={{ pr: { sm: 3 }, mb: { xs: 3, md: 5 } }}
       >
-        <Typography variant="h4">{title}</Typography>
-
         <FormControlLabel
           label="Column fixed"
           labelPlacement="start"

@@ -123,7 +123,6 @@ export function TimesheetView() {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading="Timesheet"
         links={[{ name: 'Dashboard', href: paths.dashboard.root }, { name: 'Timesheet' }]}
         sx={{ mb: { xs: 3, md: 5 } }}
       />

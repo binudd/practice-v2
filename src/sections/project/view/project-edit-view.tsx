@@ -20,7 +20,6 @@ export function ProjectEditView({ id }: Props) {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading="Edit project"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'Projects', href: paths.dashboard.project.root },

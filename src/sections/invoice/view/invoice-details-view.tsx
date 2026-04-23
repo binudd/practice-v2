@@ -18,7 +18,6 @@ export function InvoiceDetailsView({ invoice }: Props) {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading={invoice?.invoiceNumber}
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'Invoice', href: paths.dashboard.invoice.root },

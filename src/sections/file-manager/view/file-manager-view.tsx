@@ -4,7 +4,6 @@ import { useState, useCallback } from 'react';
 
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
@@ -143,8 +142,7 @@ export function FileManagerView() {
   return (
     <>
       <DashboardContent>
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography variant="h4">File manager</Typography>
+        <Stack direction="row" alignItems="center" justifyContent="flex-end">
           <Button
             variant="contained"
             startIcon={<Iconify icon="eva:cloud-upload-fill" />}

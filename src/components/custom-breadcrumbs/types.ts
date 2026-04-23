@@ -10,8 +10,12 @@ export type BreadcrumbsLinkProps = {
 };
 
 export type CustomBreadcrumbsProps = BreadcrumbsProps & {
+  /**
+   * @deprecated Ignored. The large page title was removed; breadcrumbs carry context.
+   * Kept so older call sites remain type-valid.
+   */
   heading?: string;
-  /** When true, always render the large heading even if it matches a breadcrumb label. */
+  /** @deprecated Ignored. */
   forceHeading?: boolean;
   moreLink?: string[];
   activeLast?: boolean;
@@ -20,7 +24,6 @@ export type CustomBreadcrumbsProps = BreadcrumbsProps & {
   sx?: SxProps<Theme>;
   slotProps?: {
     action: SxProps<Theme>;
-    heading: SxProps<Theme>;
     moreLink: SxProps<Theme>;
     breadcrumbs: SxProps<Theme>;
   };

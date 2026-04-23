@@ -17,7 +17,6 @@ export function UserCardsView() {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading="User cards"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'User', href: paths.dashboard.user.root },

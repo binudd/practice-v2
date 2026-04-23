@@ -18,7 +18,6 @@ export function InvoiceEditView({ invoice }: Props) {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading="Edit"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'Invoice', href: paths.dashboard.invoice.root },

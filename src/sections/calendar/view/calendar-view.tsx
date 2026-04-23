@@ -13,7 +13,6 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import { useTheme } from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 
 import { useBoolean } from 'src/hooks/use-boolean';
@@ -105,10 +104,9 @@ export function CalendarView() {
         <Stack
           direction="row"
           alignItems="center"
-          justifyContent="space-between"
+          justifyContent="flex-end"
           sx={{ mb: { xs: 3, md: 5 } }}
         >
-          <Typography variant="h4">Calendar</Typography>
           <Button
             variant="contained"
             startIcon={<Iconify icon="mingcute:add-line" />}

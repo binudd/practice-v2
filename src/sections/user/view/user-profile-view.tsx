@@ -56,7 +56,6 @@ export function UserProfileView() {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading="Profile"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'User', href: paths.dashboard.user.root },

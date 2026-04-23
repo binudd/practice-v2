@@ -121,7 +121,6 @@ export function ProjectDetailsView({ id }: Props) {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading={project?.name ?? 'Project'}
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'Projects', href: paths.dashboard.project.root },

@@ -1,7 +1,5 @@
 import { useEffect, useCallback } from 'react';
 
-import Typography from '@mui/material/Typography';
-
 import { paths } from 'src/routes/paths';
 import { useRouter, useSearchParams } from 'src/routes/hooks';
 
@@ -113,10 +111,6 @@ export function MailView() {
         maxWidth={false}
         sx={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}
       >
-        <Typography variant="h4" sx={{ mb: { xs: 3, md: 5 } }}>
-          Mail
-        </Typography>
-
         <Layout
           sx={{
             p: 1,
