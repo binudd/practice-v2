@@ -2,6 +2,9 @@ import 'src/global.css';
 
 // ----------------------------------------------------------------------
 
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+
 import { Router } from 'src/routes/sections';
 
 import { useScrollToTop } from 'src/hooks/use-scroll-to-top';
@@ -32,13 +35,15 @@ export default function App() {
     <AuthProvider>
       <SettingsProvider settings={defaultSettings}>
         <ThemeProvider>
-          <MotionLazy>
-            <Snackbar />
-            <ProgressBar />
-            <SettingsDrawer />
-            <RealtimeBridge />
-            <Router />
-          </MotionLazy>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <MotionLazy>
+              <Snackbar />
+              <ProgressBar />
+              <SettingsDrawer />
+              <RealtimeBridge />
+              <Router />
+            </MotionLazy>
+          </LocalizationProvider>
         </ThemeProvider>
       </SettingsProvider>
     </AuthProvider>
