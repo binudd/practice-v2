@@ -6,7 +6,23 @@ import Breadcrumbs from '@mui/material/Breadcrumbs';
 
 import { BreadcrumbsLink } from './breadcrumb-link';
 
-import type { CustomBreadcrumbsProps } from './types';
+import type { BreadcrumbsLinkProps, CustomBreadcrumbsProps } from './types';
+
+// ----------------------------------------------------------------------
+
+function isHeadingRedundant(
+  heading: string | undefined,
+  forceHeading: boolean | undefined,
+  links: BreadcrumbsLinkProps[]
+): boolean {
+  if (!heading?.trim() || forceHeading) return false;
+  const normalized = heading.trim().toLowerCase();
+  return links.some((link) => {
+    const name = link.name?.trim();
+    if (!name) return false;
+    return name.toLowerCase() === normalized;
+  });
+}
 
 // ----------------------------------------------------------------------
 
@@ -14,13 +30,16 @@ export function CustomBreadcrumbs({
   links,
   action,
   heading,
+  forceHeading,
   moreLink,
   activeLast,
   slotProps,
   sx,
   ...other
 }: CustomBreadcrumbsProps) {
-  const lastLink = links[links.length - 1].name;
+  const lastLink = links[links.length - 1]?.name;
+
+  const showHeading = heading && !isHeadingRedundant(heading, forceHeading, links);
 
   const renderHeading = (
     <Typography variant="h4" sx={{ mb: 2, ...slotProps?.heading }}>
@@ -59,7 +78,7 @@ export function CustomBreadcrumbs({
     <Stack spacing={2} sx={sx}>
       <Stack direction="row" alignItems="center">
         <Box sx={{ flexGrow: 1 }}>
-          {heading && renderHeading}
+          {showHeading && renderHeading}
 
           {!!links.length && renderLinks}
         </Box>

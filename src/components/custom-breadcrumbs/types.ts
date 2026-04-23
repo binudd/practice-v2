@@ -11,6 +11,8 @@ export type BreadcrumbsLinkProps = {
 
 export type CustomBreadcrumbsProps = BreadcrumbsProps & {
   heading?: string;
+  /** When true, always render the large heading even if it matches a breadcrumb label. */
+  forceHeading?: boolean;
   moreLink?: string[];
   activeLast?: boolean;
   action?: React.ReactNode;

@@ -1,6 +1,6 @@
 import type { BoxProps } from '@mui/material/Box';
 
-import { useId, forwardRef } from 'react';
+import { forwardRef } from 'react';
 
 import Box from '@mui/material/Box';
 import NoSsr from '@mui/material/NoSsr';
@@ -21,13 +21,12 @@ export const Logo = forwardRef<HTMLDivElement, LogoProps>(
   ({ width = 40, height = 40, disableLink = false, className, href = '/', sx, ...other }, ref) => {
     const theme = useTheme();
 
-    const gradientId = useId();
-
-    const PRIMARY_LIGHT = theme.vars.palette.primary.light;
-
     const PRIMARY_MAIN = theme.vars.palette.primary.main;
 
-    const PRIMARY_DARK = theme.vars.palette.primary.dark;
+    const SURFACE =
+      theme.palette.mode === 'dark'
+        ? theme.vars.palette.background.default
+        : theme.vars.palette.common.white;
 
     /*
      * OR using local (public folder)
@@ -35,38 +34,17 @@ export const Logo = forwardRef<HTMLDivElement, LogoProps>(
      */
 
     const logo = (
-      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 512 512">
-        <defs>
-          <linearGradient id={`${gradientId}-1`} x1="100%" x2="50%" y1="9.946%" y2="50%">
-            <stop offset="0%" stopColor={PRIMARY_DARK} />
-            <stop offset="100%" stopColor={PRIMARY_MAIN} />
-          </linearGradient>
-
-          <linearGradient id={`${gradientId}-2`} x1="50%" x2="50%" y1="0%" y2="100%">
-            <stop offset="0%" stopColor={PRIMARY_LIGHT} />
-            <stop offset="100%" stopColor={PRIMARY_MAIN} />
-          </linearGradient>
-
-          <linearGradient id={`${gradientId}-3`} x1="50%" x2="50%" y1="0%" y2="100%">
-            <stop offset="0%" stopColor={PRIMARY_LIGHT} />
-            <stop offset="100%" stopColor={PRIMARY_MAIN} />
-          </linearGradient>
-        </defs>
-
-        <g fill={PRIMARY_MAIN} fillRule="evenodd" stroke="none" strokeWidth="1">
-          <path
-            fill={`url(#${`${gradientId}-1`})`}
-            d="M183.168 285.573l-2.918 5.298-2.973 5.363-2.846 5.095-2.274 4.043-2.186 3.857-2.506 4.383-1.6 2.774-2.294 3.939-1.099 1.869-1.416 2.388-1.025 1.713-1.317 2.18-.95 1.558-1.514 2.447-.866 1.38-.833 1.312-.802 1.246-.77 1.18-.739 1.111-.935 1.38-.664.956-.425.6-.41.572-.59.8-.376.497-.537.69-.171.214c-10.76 13.37-22.496 23.493-36.93 29.334-30.346 14.262-68.07 14.929-97.202-2.704l72.347-124.682 2.8-1.72c49.257-29.326 73.08 1.117 94.02 40.927z"
-          />
-          <path
-            fill={`url(#${`${gradientId}-2`})`}
-            d="M444.31 229.726c-46.27-80.956-94.1-157.228-149.043-45.344-7.516 14.384-12.995 42.337-25.267 42.337v-.142c-12.272 0-17.75-27.953-25.265-42.337C189.79 72.356 141.96 148.628 95.69 229.584c-3.483 6.106-6.828 11.932-9.69 16.996 106.038-67.127 97.11 135.667 184 137.278V384c86.891-1.611 77.962-204.405 184-137.28-2.86-5.062-6.206-10.888-9.69-16.994"
-          />
-          <path
-            fill={`url(#${`${gradientId}-3`})`}
-            d="M450 384c26.509 0 48-21.491 48-48s-21.491-48-48-48-48 21.491-48 48 21.491 48 48 48"
-          />
-        </g>
+      <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 133 133" fill="none">
+        <path
+          d="M0 12.2891C0 5.66165 5.37258 0.289062 12 0.289062H120.609C127.237 0.289062 132.609 5.66165 132.609 12.2891V108.315C132.609 121.57 121.864 132.315 108.609 132.315H12C5.37259 132.315 0 126.942 0 120.315V12.2891Z"
+          fill={SURFACE}
+        />
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M120.608 0C127.236 0.000171648 132.608 5.37269 132.608 12V78.4414L113.243 51.6025C96.4338 28.3051 63.9245 23.0455 40.627 39.8545C17.3298 56.6639 12.0709 89.1733 28.8799 112.471L43.4092 132.608H12C5.37269 132.608 0.000165245 127.236 0 120.608V12C6.72183e-06 5.37259 5.37259 3.14097e-07 12 0H120.608ZM48.9141 51.3398C65.8681 39.1077 89.5252 42.935 101.758 59.8887L128.049 96.3271C135.441 106.573 133.126 120.883 122.881 128.275C112.635 135.668 98.3249 133.352 90.9326 123.106L64.6426 86.668C62.0908 83.1311 62.8861 78.2101 66.4229 75.6582C69.9596 73.1064 74.8806 73.9029 77.4326 77.4395L103.724 113.878C106.012 117.049 110.438 117.766 113.609 115.478C116.781 113.189 117.497 108.763 115.209 105.592L88.918 69.1533C81.7892 59.273 68.0161 57.0441 58.1357 64.1729C48.2556 71.3017 46.0276 85.0758 53.1562 94.9561L79.4463 131.395C79.7444 131.808 80.0516 132.211 80.3633 132.608H60.873L40.3652 104.185C28.1327 87.2305 31.9601 63.5725 48.9141 51.3398Z"
+          fill={PRIMARY_MAIN}
+        />
       </svg>
     );
 
