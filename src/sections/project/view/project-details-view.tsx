@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -11,13 +12,13 @@ import LinearProgress from '@mui/material/LinearProgress';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
+import { varAlpha } from 'src/theme/styles';
 import { useGetProject } from 'src/actions/project';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { ProjectPolicy } from 'src/domain/project/project-policy';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
-import { CustomTabs } from 'src/components/custom-tabs';
 import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
@@ -140,14 +141,24 @@ export function ProjectDetailsView({ id }: Props) {
             </Can>
           )
         }
-        sx={{ mb: { xs: 3, md: 5 } }}
+        sx={{ mb: { xs: 2, md: 3 } }}
       />
 
-      <CustomTabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={{
+          mb: 2.5,
+          boxShadow: (theme) =>
+            `inset 0 -2px 0 0 ${varAlpha(theme.vars.palette.grey['500Channel'], 0.08)}`,
+        }}
+      >
         {TABS.map((t) => (
           <Tab key={t.value} value={t.value} label={t.label} />
         ))}
-      </CustomTabs>
+      </Tabs>
 
       {projectLoading ? (
         <EmptyContent title="Loading..." />

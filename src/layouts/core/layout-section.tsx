@@ -44,7 +44,11 @@ export function LayoutSection({
     <>
       {inputGlobalStyles}
 
-      <Box id="root__layout" className={layoutClasses.root} sx={sx}>
+      <Box
+        id="root__layout"
+        className={layoutClasses.root}
+        sx={[{ bgcolor: 'background.neutral' }, ...(Array.isArray(sx) ? sx : sx ? [sx] : [])]}
+      >
         {sidebarSection ? (
           <>
             {sidebarSection}
