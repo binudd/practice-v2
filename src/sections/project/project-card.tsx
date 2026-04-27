@@ -1,25 +1,30 @@
+import type { MouseEvent } from 'react';
 import type { IProject, IProjectStatus } from 'src/types/project';
 
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import AvatarGroup from '@mui/material/AvatarGroup';
-import LinearProgress from '@mui/material/LinearProgress';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
+import { fDate } from 'src/utils/format-time';
+
 import { _mock } from 'src/_mock/_mock';
+import { updateProject } from 'src/actions/project';
 import { PROJECT_STATUS_OPTIONS } from 'src/_mock/_project';
 import { ProjectPolicy } from 'src/domain/project/project-policy';
 import { deleteProjectCascade } from 'src/services/project-service';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
 
@@ -32,14 +37,11 @@ const statusLabel: Record<IProjectStatus, string> = PROJECT_STATUS_OPTIONS.reduc
   {} as Record<IProjectStatus, string>
 );
 
-const statusColor: Record<
-  IProjectStatus,
-  'success' | 'warning' | 'info' | 'default' | 'error' | 'primary' | 'secondary'
-> = {
-  active: 'success',
-  'on-hold': 'warning',
-  completed: 'info',
-  archived: 'default',
+const statusDotBg: Record<IProjectStatus, string> = {
+  active: 'success.main',
+  'on-hold': 'warning.main',
+  completed: 'info.main',
+  archived: 'grey.500',
 };
 
 // ----------------------------------------------------------------------
@@ -70,6 +72,19 @@ export function ProjectCard({ project }: Props) {
     await deleteProjectCascade(project);
   };
 
+  const handleToggleFavorite = async (event: MouseEvent) => {
+    event.stopPropagation();
+    try {
+      await updateProject(project.id, { isFavorite: !project.isFavorite });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const stopRowClick = (event: MouseEvent) => {
+    event.stopPropagation();
+  };
+
   return (
     <>
       <Card
@@ -87,9 +102,28 @@ export function ProjectCard({ project }: Props) {
       >
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
           <Stack spacing={0.5} sx={{ flexGrow: 1, minWidth: 0, cursor: 'pointer' }} onClick={handleOpenDetails}>
-            <Typography variant="caption" color="text.secondary">
-              {project.code}
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Tooltip title={statusLabel[project.status]} arrow>
+                <Box
+                  component="span"
+                  onClick={stopRowClick}
+                  onMouseDown={stopRowClick}
+                  sx={{ display: 'inline-flex', flexShrink: 0 }}
+                >
+                  <Box
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      bgcolor: statusDotBg[project.status],
+                    }}
+                  />
+                </Box>
+              </Tooltip>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {project.code}
+              </Typography>
+            </Stack>
             <Typography variant="subtitle1" noWrap>
               {project.name}
             </Typography>
@@ -98,15 +132,14 @@ export function ProjectCard({ project }: Props) {
           <IconButton
             size="small"
             color={popover.open ? 'inherit' : 'default'}
-            onClick={popover.onOpen}
+            onClick={(e) => {
+              e.stopPropagation();
+              popover.onOpen(e);
+            }}
           >
             <Iconify icon="eva:more-vertical-fill" />
           </IconButton>
         </Stack>
-
-        <Label variant="soft" color={statusColor[project.status]} sx={{ alignSelf: 'flex-start' }}>
-          {statusLabel[project.status]}
-        </Label>
 
         {project.description && (
           <Typography
@@ -123,20 +156,67 @@ export function ProjectCard({ project }: Props) {
           </Typography>
         )}
 
-        <Stack spacing={0.75}>
-          <Stack direction="row" justifyContent="space-between">
-            <Typography variant="caption" color="text.secondary">
-              Progress
+        <Stack direction="row" alignItems="center" spacing={1.5} justifyContent="space-between">
+          <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="caption" color="text.secondary" noWrap>
+              Start – End
             </Typography>
-            <Typography variant="caption" sx={{ fontWeight: 'fontWeightMedium' }}>
-              {project.completedTasks}/{project.totalTasks} tasks · {project.progress}%
+            <Typography variant="caption" sx={{ fontWeight: 'fontWeightMedium' }} noWrap>
+              {fDate(project.startDate)} – {project.endDate ? fDate(project.endDate) : '—'}
             </Typography>
           </Stack>
-          <LinearProgress
-            variant="determinate"
-            value={project.progress}
-            sx={{ height: 6, borderRadius: 1 }}
-          />
+
+          <IconButton
+            size="small"
+            color={project.isFavorite ? 'warning' : 'default'}
+            onClick={handleToggleFavorite}
+            aria-label={project.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <Iconify
+              width={20}
+              icon={project.isFavorite ? 'eva:star-fill' : 'eva:star-outline'}
+            />
+          </IconButton>
+
+          <Stack alignItems="center" spacing={0.25} sx={{ flexShrink: 0 }}>
+            <Box
+              sx={{
+                position: 'relative',
+                display: 'inline-flex',
+              }}
+            >
+              <CircularProgress
+                variant="determinate"
+                value={project.progress}
+                size={44}
+                thickness={4}
+                aria-label={`${project.completedTasks} of ${project.totalTasks} tasks, ${project.progress}% complete`}
+              />
+              <Box
+                sx={{
+                  top: 0,
+                  left: 0,
+                  bottom: 0,
+                  right: 0,
+                  position: 'absolute',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 'fontWeightSemiBold', fontSize: 11 }}>
+                  {project.progress}%
+                </Typography>
+              </Box>
+            </Box>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: 10, lineHeight: 1.2, textAlign: 'center', maxWidth: 56 }}
+            >
+              {project.completedTasks}/{project.totalTasks} tasks
+            </Typography>
+          </Stack>
         </Stack>
 
         <Divider sx={{ borderStyle: 'dashed' }} />

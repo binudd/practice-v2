@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 export const ProjectStatusSchema = z.enum(['active', 'on-hold', 'completed', 'archived']);
 
+export const ProjectPrioritySchema = z.enum(['low', 'medium', 'high']);
+
 export const ProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -19,6 +21,8 @@ export const ProjectSchema = z.object({
   progress: z.number(),
   totalTasks: z.number(),
   completedTasks: z.number(),
+  priority: ProjectPrioritySchema.default('medium'),
+  isFavorite: z.boolean().default(false),
 });
 
 export const ProjectListSchema = z.object({
@@ -26,6 +30,7 @@ export const ProjectListSchema = z.object({
 });
 
 export type IProjectStatus = z.infer<typeof ProjectStatusSchema>;
+export type IProjectPriority = z.infer<typeof ProjectPrioritySchema>;
 export type IProject = z.infer<typeof ProjectSchema>;
 
 // ----------------------------------------------------------------------

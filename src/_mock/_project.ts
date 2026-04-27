@@ -24,6 +24,8 @@ const STATUSES: Array<'active' | 'on-hold' | 'completed' | 'archived'> = [
   'archived',
 ];
 
+const PRIORITIES = ['low', 'medium', 'high'] as const;
+
 export const _projects = [...Array(8)].map((_, index) => {
   const total = 20 + index * 3;
   const completed = Math.min(total, 5 + index * 3);
@@ -46,5 +48,7 @@ export const _projects = [...Array(8)].map((_, index) => {
     progress: Math.round((completed / total) * 100),
     totalTasks: total,
     completedTasks: completed,
+    priority: PRIORITIES[index % PRIORITIES.length],
+    isFavorite: index % 3 === 0,
   };
 });
