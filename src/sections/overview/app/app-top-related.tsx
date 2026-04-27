@@ -94,7 +94,7 @@ function Item({ item, sx, ...other }: ItemProps) {
           p: 1,
           width: 48,
           height: 48,
-          bgcolor: 'background.neutral',
+          bgcolor: 'background.subtle',
         }}
       />
 

@@ -31,7 +31,7 @@ export function CustomTabs({ children, slotProps, sx, ...other }: CustomTabsProp
         minHeight: 38,
         flexShrink: 0,
         alignItems: 'center',
-        bgcolor: 'background.neutral',
+        bgcolor: 'background.subtle',
         [`& .${tabsClasses.scroller}`]: {
           p: 1,
           ...slotProps?.scroller,

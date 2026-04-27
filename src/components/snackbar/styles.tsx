@@ -12,19 +12,19 @@ export const StyledToaster = styled(Toaster)(({ theme }) => {
   const baseStyles = {
     toastDefault: {
       padding: theme.spacing(1, 1, 1, 1.5),
-      boxShadow: theme.customShadows.z8,
+      boxShadow: theme.customShadows.toast,
       color: theme.vars.palette.background.paper,
       backgroundColor: theme.vars.palette.text.primary,
     },
     toastColor: {
       padding: theme.spacing(0.5, 1, 0.5, 0.5),
-      boxShadow: theme.customShadows.z8,
+      boxShadow: theme.customShadows.toast,
       color: theme.vars.palette.text.primary,
       backgroundColor: theme.vars.palette.background.paper,
     },
     toastLoader: {
       padding: theme.spacing(0.5, 1, 0.5, 0.5),
-      boxShadow: theme.customShadows.z8,
+      boxShadow: theme.customShadows.toast,
       color: theme.vars.palette.text.primary,
       backgroundColor: theme.vars.palette.background.paper,
     },
@@ -42,7 +42,7 @@ export const StyledToaster = styled(Toaster)(({ theme }) => {
     position: 'relative',
     borderRadius: 'inherit',
     justifyContent: 'center',
-    background: theme.vars.palette.background.neutral,
+    background: theme.vars.palette.background.subtle,
     [`& .${toasterClasses.loadingIcon}`]: {
       zIndex: 9,
       width: 24,

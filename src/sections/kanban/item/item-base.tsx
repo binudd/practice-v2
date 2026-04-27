@@ -13,7 +13,7 @@ import Typography from '@mui/material/Typography';
 import { styled, useTheme } from '@mui/material/styles';
 import AvatarGroup, { avatarGroupClasses } from '@mui/material/AvatarGroup';
 
-import { varAlpha, stylesMode } from 'src/theme/styles';
+import { stylesMode } from 'src/theme/styles';
 
 import { Iconify } from 'src/components/iconify';
 import { imageClasses } from 'src/components/image';
@@ -43,16 +43,20 @@ export const StyledItem = styled(Stack)(({ theme }) => ({
   boxShadow: theme.customShadows.z1,
   borderRadius: 'var(--item-radius)',
   WebkitTapHighlightColor: 'transparent',
-  backgroundColor: theme.vars.palette.common.white,
+  border: `1px solid ${theme.vars.palette.divider}`,
+  backgroundColor: theme.vars.palette.background.subtle,
   transition: theme.transitions.create(['box-shadow']),
-  [stylesMode.dark]: { backgroundColor: theme.vars.palette.grey[900] },
+  [stylesMode.dark]: { backgroundColor: theme.vars.palette.background.default },
   [`&.${kanbanClasses.state.disabled}`]: {},
   [`&.${kanbanClasses.state.sorting}`]: {},
   [`&.${kanbanClasses.state.dragOverlay}`]: {
     backdropFilter: `blur(6px)`,
     boxShadow: theme.customShadows.z20,
-    backgroundColor: varAlpha(theme.vars.palette.common.whiteChannel, 0.48),
-    [stylesMode.dark]: { backgroundColor: varAlpha(theme.vars.palette.grey['900Channel'], 0.48) },
+    backgroundColor: theme.vars.palette.background.paper,
+    borderColor: theme.vars.palette.divider,
+    [stylesMode.dark]: {
+      backgroundColor: theme.vars.palette.background.subtle,
+    },
   },
   [`&.${kanbanClasses.state.dragging}`]: { opacity: 0.2, filter: 'grayscale(1)' },
 }));

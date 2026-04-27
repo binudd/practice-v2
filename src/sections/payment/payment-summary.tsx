@@ -38,7 +38,7 @@ export function PaymentSummary({ sx, ...other }: BoxProps) {
       sx={{
         p: 5,
         borderRadius: 2,
-        bgcolor: 'background.neutral',
+        bgcolor: 'background.subtle',
         ...sx,
       }}
       {...other}

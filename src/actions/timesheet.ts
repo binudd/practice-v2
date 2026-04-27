@@ -25,7 +25,24 @@ const localFetcher = async (): Promise<TimesheetData> => ({ entries: _timesheetE
 
 // ----------------------------------------------------------------------
 
-export function useGetTimesheet(userId: string, weekStart: Date) {
+export function useAllTimesheetEntries() {
+  const { data, isLoading, error, isValidating } = useSWR<TimesheetData>(
+    TIMESHEET_ENDPOINT,
+    localFetcher,
+    swrOptions
+  );
+
+  return {
+    allEntries: data?.entries ?? [],
+    allEntriesLoading: isLoading,
+    allEntriesError: error,
+    allEntriesValidating: isValidating,
+  };
+}
+
+// ----------------------------------------------------------------------
+
+export function useGetTimesheet(userId: string, rangeStart: Date, dayCount: number = 7) {
   const { data, isLoading, error, isValidating } = useSWR<TimesheetData>(
     TIMESHEET_ENDPOINT,
     localFetcher,
@@ -36,15 +53,13 @@ export function useGetTimesheet(userId: string, weekStart: Date) {
     const all = data?.entries ?? [];
 
     const weekDays: string[] = [];
-    for (let i = 0; i < 7; i += 1) {
-      const d = new Date(weekStart);
+    for (let i = 0; i < dayCount; i += 1) {
+      const d = new Date(rangeStart);
       d.setDate(d.getDate() + i);
       weekDays.push(toIsoDay(d));
     }
 
-    const entries = all.filter(
-      (e) => e.userId === userId && weekDays.includes(e.date)
-    );
+    const entries = all.filter((e) => e.userId === userId && weekDays.includes(e.date));
 
     return {
       entries,
@@ -53,7 +68,7 @@ export function useGetTimesheet(userId: string, weekStart: Date) {
       timesheetError: error,
       timesheetValidating: isValidating,
     };
-  }, [data?.entries, userId, weekStart, isLoading, error, isValidating]);
+  }, [data?.entries, userId, rangeStart, dayCount, isLoading, error, isValidating]);
 }
 
 // ----------------------------------------------------------------------

@@ -180,7 +180,7 @@ export function MailDetails({ mail, renderLabel, empty, loading }: Props) {
   );
 
   const renderAttachments = (
-    <Stack spacing={1} sx={{ p: 1, borderRadius: 1, bgcolor: 'background.neutral' }}>
+    <Stack spacing={1} sx={{ p: 1, borderRadius: 1, bgcolor: 'background.subtle' }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <ButtonBase
           onClick={showAttachments.onToggle}
@@ -220,7 +220,7 @@ export function MailDetails({ mail, renderLabel, empty, loading }: Props) {
               imageView
               file={attachment.preview}
               onDownload={() => console.info('DOWNLOAD')}
-              sx={{ width: 48, height: 48, backgroundColor: 'background.neutral' }}
+              sx={{ width: 48, height: 48, backgroundColor: 'background.subtle' }}
               slotProps={{ icon: { width: 24, height: 24 } }}
             />
           ))}

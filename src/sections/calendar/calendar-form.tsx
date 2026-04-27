@@ -111,7 +111,7 @@ export function CalendarForm({ currentEvent, colorOptions, onClose }: Props) {
 
   return (
     <Form methods={methods} onSubmit={onSubmit}>
-      <Scrollbar sx={{ p: 3, bgcolor: 'background.neutral' }}>
+      <Scrollbar sx={{ p: 3, bgcolor: 'background.subtle' }}>
         <Stack spacing={3}>
           <Field.Text name="title" label="Title" />
 

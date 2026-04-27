@@ -18,11 +18,10 @@ export const StyledRoot = styled(Stack)(({ theme }) => ({
   borderWidth: 1,
   position: 'relative',
   borderStyle: 'solid',
-  borderColor: 'transparent',
+  borderColor: theme.vars.palette.divider,
   padding: 'var(--column-padding)',
   borderRadius: 'var(--column-radius)',
-  backgroundColor: theme.vars.palette.background.neutral,
-  [stylesMode.dark]: { backgroundColor: theme.vars.palette.grey[800] },
+  backgroundColor: theme.vars.palette.background.paper,
   '&::before': {
     top: 0,
     left: 0,
@@ -43,8 +42,7 @@ export const StyledRoot = styled(Stack)(({ theme }) => ({
   [`&.${kanbanClasses.state.dragOverlay}`]: {
     backdropFilter: `blur(6px)`,
     borderColor: varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
-    backgroundColor: varAlpha(theme.vars.palette.background.neutralChannel, 0.48),
-    [stylesMode.dark]: { backgroundColor: varAlpha(theme.vars.palette.grey['800Channel'], 0.48) },
+    backgroundColor: varAlpha(theme.vars.palette.background.paperChannel, 0.72),
   },
   [`&.${kanbanClasses.state.dragging}`]: { opacity: 0 },
 }));

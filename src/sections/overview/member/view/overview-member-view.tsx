@@ -35,7 +35,7 @@ export function OverviewMemberView() {
 
   const weekStart = useMemo(() => startOfWeek(new Date()), []);
 
-  const { entries, weekDays } = useGetTimesheet(CURRENT_USER_ID, weekStart);
+  const { entries, weekDays } = useGetTimesheet(CURRENT_USER_ID, weekStart, 7);
 
   const weekTotal = entries.reduce((sum, e) => sum + e.hours, 0);
 
@@ -61,7 +61,7 @@ export function OverviewMemberView() {
                 textDecoration: 'none',
                 color: 'inherit',
                 transition: (theme) => theme.transitions.create('background-color'),
-                '&:hover': { bgcolor: 'background.neutral' },
+                '&:hover': { bgcolor: 'action.hover' },
               }}
             >
               <Stack direction="row" alignItems="center" justifyContent="space-between">

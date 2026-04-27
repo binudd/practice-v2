@@ -80,7 +80,7 @@ export function AccountNotifications() {
             </Grid>
 
             <Grid xs={12} md={8}>
-              <Stack spacing={1} sx={{ p: 3, borderRadius: 2, bgcolor: 'background.neutral' }}>
+              <Stack spacing={1} sx={{ p: 3, borderRadius: 2, bgcolor: 'background.subtle' }}>
                 <Controller
                   name="selected"
                   control={control}

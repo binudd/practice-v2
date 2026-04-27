@@ -219,7 +219,7 @@ export function FileManagerFileDetails({
           <Stack
             spacing={2.5}
             justifyContent="center"
-            sx={{ p: 2.5, bgcolor: 'background.neutral' }}
+            sx={{ p: 2.5, bgcolor: 'background.subtle' }}
           >
             <FileThumbnail
               imageView

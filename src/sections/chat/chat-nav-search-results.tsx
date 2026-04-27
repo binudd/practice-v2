@@ -27,7 +27,7 @@ export function ChatNavSearchResults({ query, results, onClickResult }: Props) {
         p: 3,
         mx: 'auto',
         width: `calc(100% - 40px)`,
-        bgcolor: 'background.neutral',
+        bgcolor: 'background.subtle',
       }}
     />
   );

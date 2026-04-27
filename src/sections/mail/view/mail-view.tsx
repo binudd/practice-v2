@@ -116,7 +116,7 @@ export function MailView() {
             p: 1,
             borderRadius: 2,
             flex: '1 1 auto',
-            bgcolor: 'background.neutral',
+            bgcolor: 'background.subtle',
           }}
           slots={{
             header: (

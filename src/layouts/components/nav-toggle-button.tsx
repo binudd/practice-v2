@@ -32,7 +32,7 @@ export function NavToggleButton({ isNavMini, sx, ...other }: NavToggleButtonProp
           }),
         '&:hover': {
           color: 'text.primary',
-          bgcolor: 'background.neutral',
+          bgcolor: 'background.subtle',
         },
         ...sx,
       }}

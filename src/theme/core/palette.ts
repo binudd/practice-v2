@@ -16,6 +16,8 @@ declare module '@mui/material/styles/createPalette' {
   interface TypeBackground {
     neutral: string;
     neutralChannel: string;
+    subtle: string;
+    subtleChannel: string;
   }
   interface SimplePaletteColorOptions {
     lighter: string;
@@ -88,8 +90,18 @@ export const text = {
 
 // Background
 export const background = {
-  light: createPaletteChannel({ paper: '#FFFFFF', default: '#FFFFFF', neutral: grey[200] }),
-  dark: createPaletteChannel({ paper: grey[800], default: grey[900], neutral: '#28323D' }),
+  light: createPaletteChannel({
+    paper: '#FFFFFF',
+    default: '#FFFFFF',
+    neutral: grey[200],
+    subtle: grey[100],
+  }),
+  dark: createPaletteChannel({
+    paper: grey[800],
+    default: grey[900],
+    neutral: '#28323D',
+    subtle: '#222C36',
+  }),
 };
 
 // Action

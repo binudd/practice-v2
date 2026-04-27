@@ -60,11 +60,11 @@ const MuiTableCell: Components<Theme>['MuiTableCell'] = {
       fontSize: 14,
       color: theme.vars.palette.text.secondary,
       fontWeight: theme.typography.fontWeightSemiBold,
-      backgroundColor: theme.vars.palette.background.neutral,
+      backgroundColor: theme.vars.palette.background.subtle,
     }),
     stickyHeader: ({ theme }) => ({
       backgroundColor: theme.vars.palette.background.paper,
-      backgroundImage: `linear-gradient(to bottom, ${theme.vars.palette.background.neutral} 0%, ${theme.vars.palette.background.neutral} 100%)`,
+      backgroundImage: `linear-gradient(to bottom, ${theme.vars.palette.background.subtle} 0%, ${theme.vars.palette.background.subtle} 100%)`,
     }),
     paddingCheckbox: ({ theme }) => ({ paddingLeft: theme.spacing(1) }),
   },

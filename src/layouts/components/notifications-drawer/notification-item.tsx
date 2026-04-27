@@ -30,12 +30,12 @@ export function NotificationItem({ notification }: { notification: NotificationI
   const renderAvatar = (
     <ListItemAvatar>
       {notification.avatarUrl ? (
-        <Avatar src={notification.avatarUrl} sx={{ bgcolor: 'background.neutral' }} />
+        <Avatar src={notification.avatarUrl} sx={{ bgcolor: 'background.subtle' }} />
       ) : (
         <Stack
           alignItems="center"
           justifyContent="center"
-          sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: 'background.neutral' }}
+          sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: 'background.subtle' }}
         >
           <Box
             component="img"
@@ -108,7 +108,7 @@ export function NotificationItem({ notification }: { notification: NotificationI
           my: 1.5,
           borderRadius: 1.5,
           color: 'text.secondary',
-          bgcolor: 'background.neutral',
+          bgcolor: 'background.subtle',
         }}
       >
         {reader(
@@ -131,7 +131,7 @@ export function NotificationItem({ notification }: { notification: NotificationI
         p: 1.5,
         mt: 1.5,
         borderRadius: 1.5,
-        bgcolor: 'background.neutral',
+        bgcolor: 'background.subtle',
       }}
     >
       <FileThumbnail file="http://localhost:8080/httpsdesign-suriname-2015.mp3" />

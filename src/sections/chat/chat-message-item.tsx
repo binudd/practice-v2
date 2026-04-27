@@ -55,7 +55,7 @@ export function ChatMessageItem({ message, participants, onOpenLightbox }: Props
         maxWidth: 320,
         borderRadius: 1,
         typography: 'body2',
-        bgcolor: 'background.neutral',
+        bgcolor: 'background.subtle',
         ...(me && { color: 'grey.800', bgcolor: 'primary.lighter' }),
         ...(hasImage && { p: 0, bgcolor: 'transparent' }),
       }}

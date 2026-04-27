@@ -1,5 +1,7 @@
 import type { ITimesheetEntry } from 'src/types/timesheet';
 
+import { buildTimesheetEntryId } from 'src/utils/timesheet-entry-id';
+
 import { toIsoDay } from 'src/_mock/_timesheet';
 import { notify } from 'src/store/notifications-store';
 import { upsertEntry as upsertEntryAction } from 'src/actions/timesheet';
@@ -15,6 +17,8 @@ export type WeekDraftEntry = {
   date: string;
   hours: number;
   note?: string;
+  taskId?: string;
+  taskName?: string;
 };
 
 // ----------------------------------------------------------------------
@@ -40,12 +44,14 @@ export async function submitWeek(
       .map((row) => {
         const iso = toIsoDay(new Date(row.date));
         return {
-          id: `ts-${row.projectId}-${iso}`,
+          id: buildTimesheetEntryId(userId, row.projectId, iso, row.taskId),
           userId,
           projectId: row.projectId,
           date: iso,
           hours: row.hours,
           note: row.note,
+          taskId: row.taskId,
+          taskName: row.taskName,
         };
       });
 

@@ -65,7 +65,7 @@ export function MailCompose({ onCloseCompose }: Props) {
         <Stack
           direction="row"
           alignItems="center"
-          sx={{ bgcolor: 'background.neutral', p: (theme) => theme.spacing(1.5, 1, 1.5, 2) }}
+          sx={{ bgcolor: 'background.subtle', p: (theme) => theme.spacing(1.5, 1, 1.5, 2) }}
         >
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             New message

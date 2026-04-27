@@ -10,6 +10,7 @@ import InputBase, { inputBaseClasses } from '@mui/material/InputBase';
 import { uuidv4 } from 'src/utils/uuidv4';
 
 import { _mock } from 'src/_mock';
+import { stylesMode } from 'src/theme/styles';
 
 // ----------------------------------------------------------------------
 
@@ -68,8 +69,9 @@ export function KanbanTaskAdd({ status, openAddTask, onAddTask, onCloseAddTask }
         <Paper
           sx={{
             borderRadius: 1.5,
-            bgcolor: 'background.default',
-            boxShadow: (theme) => theme.customShadows.z1,
+            bgcolor: 'background.subtle',
+            border: (theme) => `1px solid ${theme.vars.palette.divider}`,
+            [stylesMode.dark]: { bgcolor: 'background.default' },
           }}
         >
           <InputBase

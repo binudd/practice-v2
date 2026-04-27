@@ -124,7 +124,7 @@ export const StyledRoot = styled(ReactMarkdown)(({ theme }) => ({
     borderCollapse: 'collapse',
     border: `1px solid ${theme.vars.palette.divider}`,
     'th, td': { padding: theme.spacing(1), border: `1px solid ${theme.vars.palette.divider}` },
-    'tbody tr:nth-of-type(odd)': { backgroundColor: theme.vars.palette.background.neutral },
+    'tbody tr:nth-of-type(odd)': { backgroundColor: theme.vars.palette.background.subtle },
   },
   /**
    * Checkbox

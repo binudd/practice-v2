@@ -57,7 +57,7 @@ export function OverviewClientView() {
                 textDecoration: 'none',
                 color: 'inherit',
                 transition: (theme) => theme.transitions.create('background-color'),
-                '&:hover': { bgcolor: 'background.neutral' },
+                '&:hover': { bgcolor: 'action.hover' },
               }}
             >
               <Stack direction="row" alignItems="center" justifyContent="space-between">

@@ -14,7 +14,7 @@ export const StyledCalendar = styled('div')(({ theme }) => ({
     '--fc-now-indicator-color': theme.vars.palette.error.main,
     '--fc-today-bg-color': varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
     '--fc-page-bg-color': theme.vars.palette.background.default,
-    '--fc-neutral-bg-color': theme.vars.palette.background.neutral,
+    '--fc-neutral-bg-color': theme.vars.palette.background.subtle,
     '--fc-list-event-hover-bg-color': theme.vars.palette.action.hover,
     '--fc-highlight-color': theme.vars.palette.action.hover,
   },

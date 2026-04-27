@@ -81,7 +81,7 @@ const MuiDataGrid: Components<Theme>['MuiDataGrid'] = {
     root: ({ theme }) => ({
       '--unstable_DataGrid-radius': 0,
       '--DataGrid-rowBorderColor': theme.vars.palette.divider,
-      '--DataGrid-containerBackground': theme.vars.palette.background.neutral,
+      '--DataGrid-containerBackground': theme.vars.palette.background.subtle,
       '--unstable_DataGrid-headWeight': theme.typography.fontWeightSemiBold,
       borderWidth: 0,
       scrollbarWidth: 'thin',

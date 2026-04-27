@@ -23,7 +23,7 @@ export const FlagIcon = forwardRef<HTMLSpanElement, FlagIconProps>(
       overflow: 'hidden',
       borderRadius: '5px',
       display: 'inline-flex',
-      bgcolor: 'background.neutral',
+      bgcolor: 'background.subtle',
     };
 
     const renderFallback = <Box component="span" sx={{ ...baseStyles, ...sx }} />;

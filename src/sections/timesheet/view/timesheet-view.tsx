@@ -1,124 +1,179 @@
-import type { ITimesheetRow } from 'src/types/timesheet';
+import type { ITimesheetEntry, ITimesheetTaskRowModel } from 'src/types/timesheet';
 
-import dayjs from 'dayjs';
 import { useMemo, useState, useCallback } from 'react';
 
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
-import Button from '@mui/material/Button';
-import TableRow from '@mui/material/TableRow';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TextField from '@mui/material/TextField';
-import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import TableContainer from '@mui/material/TableContainer';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 import { paths } from 'src/routes/paths';
 
-import { _projects } from 'src/_mock/_project';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { startOfWeek, CURRENT_USER_ID } from 'src/_mock/_timesheet';
-import { upsertEntry, deleteEntry, useGetTimesheet } from 'src/actions/timesheet';
+import { deleteEntry, useAllTimesheetEntries } from 'src/actions/timesheet';
+import { toIsoDay, startOfWeek, CURRENT_USER_ID } from 'src/_mock/_timesheet';
 
 import { toast } from 'src/components/snackbar';
-import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-// ----------------------------------------------------------------------
+import { useHasPermission } from 'src/auth/hooks/use-role';
+import { useAuthContext } from 'src/auth/hooks/use-auth-context';
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+import { LogTimeDrawer } from '../log-time-drawer';
+import { TimesheetTable } from '../components/timesheet-table';
+import { TimesheetToolbar } from '../components/timesheet-toolbar';
+import { useManagerMemberIds } from '../hooks/use-manager-member-ids';
 
 // ----------------------------------------------------------------------
 
 export function TimesheetView() {
+  const { user } = useAuthContext();
+  const viewerId = user?.id ?? CURRENT_USER_ID;
+  const canViewAll = useHasPermission('timesheet:view-all');
+  const canLogTime = useHasPermission('timesheet:enter');
+
+  const [viewMode, setViewMode] = useState<'week' | 'day'>('week');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [expandedByUser, setExpandedByUser] = useState<Record<string, boolean>>({});
 
-  const weekStart = useMemo(() => startOfWeek(selectedDate), [selectedDate]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerContext, setDrawerContext] = useState<{
+    targetUserId: string;
+    editing: ITimesheetEntry | null;
+    defaultDate?: string;
+    defaultProjectId?: string;
+    defaultTaskId?: string;
+  }>({ targetUserId: viewerId, editing: null });
 
-  const { entries, weekDays, timesheetLoading } = useGetTimesheet(CURRENT_USER_ID, weekStart);
+  const rangeStart = useMemo(() => {
+    if (viewMode === 'week') {
+      return startOfWeek(selectedDate);
+    }
+    const d = new Date(selectedDate);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [viewMode, selectedDate]);
 
-  const rows: ITimesheetRow[] = useMemo(
+  const dayCount = viewMode === 'week' ? 7 : 1;
+
+  const weekDays = useMemo(() => {
+    const days: string[] = [];
+    for (let i = 0; i < dayCount; i += 1) {
+      const d = new Date(rangeStart);
+      d.setDate(d.getDate() + i);
+      days.push(toIsoDay(d));
+    }
+    return days;
+  }, [rangeStart, dayCount]);
+
+  const todayIso = toIsoDay(new Date());
+
+  const { allEntries, allEntriesLoading } = useAllTimesheetEntries();
+
+  const isManagerView = canViewAll;
+
+  const entriesInRange = useMemo(
     () =>
-      _projects.map((project) => {
-        const hoursByDate: Record<string, number> = {};
-        const entryIds: Record<string, string> = {};
-        weekDays.forEach((d) => {
-          hoursByDate[d] = 0;
-          entryIds[d] = '';
-        });
-        entries
-          .filter((e) => e.projectId === project.id)
-          .forEach((e) => {
-            hoursByDate[e.date] = e.hours;
-            entryIds[e.date] = e.id;
-          });
-        return {
-          projectId: project.id,
-          projectName: project.name,
-          projectCode: project.code,
-          hoursByDate,
-          entryIds,
-        };
+      allEntries.filter((e) => {
+        if (!weekDays.includes(e.date)) return false;
+        if (!isManagerView) return e.userId === viewerId;
+        return true;
       }),
-    [entries, weekDays]
+    [allEntries, weekDays, isManagerView, viewerId]
   );
 
-  const handleChangeHours = useCallback(
-    async (projectId: string, date: string, rawValue: string, existingId: string) => {
-      const parsed = parseFloat(rawValue);
-      const hours = Number.isFinite(parsed) ? Math.max(0, Math.min(24, parsed)) : 0;
+  const memberIds = useManagerMemberIds(entriesInRange, isManagerView);
 
-      if (hours === 0 && existingId) {
-        try {
-          await deleteEntry(existingId);
-        } catch (error) {
-          console.error(error);
-          toast.error('Failed to update');
-        }
-        return;
-      }
+  const addTargetUserId = useMemo(() => {
+    if (!isManagerView) return viewerId;
+    if (memberIds.includes(viewerId)) return viewerId;
+    return memberIds[0] ?? viewerId;
+  }, [isManagerView, viewerId, memberIds]);
 
-      if (hours === 0) return;
-
-      const id = existingId || `ts-${projectId}-${date}`;
-      try {
-        await upsertEntry({
-          id,
-          userId: CURRENT_USER_ID,
-          projectId,
-          date,
-          hours,
-        });
-      } catch (error) {
-        console.error(error);
-        toast.error('Failed to update');
-      }
-    },
-    []
-  );
-
-  const dailyTotals = useMemo(() => {
-    const totals: Record<string, number> = {};
+  const grandTotalsByDay = useMemo(() => {
+    const m: Record<string, number> = {};
     weekDays.forEach((d) => {
-      totals[d] = rows.reduce((sum, row) => sum + (row.hoursByDate[d] ?? 0), 0);
+      m[d] = entriesInRange.filter((e) => e.date === d).reduce((s, e) => s + e.hours, 0);
     });
-    return totals;
-  }, [rows, weekDays]);
+    return m;
+  }, [entriesInRange, weekDays]);
 
-  const weekTotal = useMemo(
-    () => Object.values(dailyTotals).reduce((sum, n) => sum + n, 0),
-    [dailyTotals]
+  const grandWeekTotal = useMemo(
+    () => Object.values(grandTotalsByDay).reduce((a, b) => a + b, 0),
+    [grandTotalsByDay]
   );
 
-  const shiftWeek = (days: number) => {
+  const historyEntries = useMemo(
+    () => allEntries.filter((e) => e.userId === drawerContext.targetUserId),
+    [allEntries, drawerContext.targetUserId]
+  );
+
+  const shiftRange = (dir: -1 | 1) => {
     const next = new Date(selectedDate);
-    next.setDate(next.getDate() + days);
+    next.setDate(next.getDate() + dir * (viewMode === 'week' ? 7 : 1));
     setSelectedDate(next);
   };
+
+  const canEditForUser = useCallback(
+    (userId: string) => canViewAll || userId === viewerId,
+    [canViewAll, viewerId]
+  );
+
+  const openAdd = useCallback(() => {
+    setDrawerContext({
+      targetUserId: addTargetUserId,
+      editing: null,
+      defaultDate: weekDays[0],
+    });
+    setDrawerOpen(true);
+  }, [addTargetUserId, weekDays]);
+
+  const openTaskCell = useCallback(
+    (targetUserId: string, row: ITimesheetTaskRowModel, date: string) => {
+      if (!canEditForUser(targetUserId)) return;
+      const existing = entriesInRange.find(
+        (e) =>
+          e.userId === targetUserId &&
+          e.projectId === row.projectId &&
+          (e.taskId ?? '') === (row.taskId ?? '') &&
+          e.date === date
+      );
+      setDrawerContext({
+        targetUserId,
+        editing: existing ?? null,
+        defaultDate: date,
+        defaultProjectId: row.projectId,
+        defaultTaskId: row.taskId,
+      });
+      setDrawerOpen(true);
+    },
+    [canEditForUser, entriesInRange]
+  );
+
+  const handleClearTaskRow = useCallback(
+    async (row: ITimesheetTaskRowModel) => {
+      if (!canEditForUser(row.userId)) return;
+      try {
+        await Promise.all(
+          weekDays.map((d) => {
+            const id = row.entryIds[d];
+            return id ? deleteEntry(id) : Promise.resolve();
+          })
+        );
+        toast.success('Row cleared');
+      } catch (e) {
+        console.error(e);
+        toast.error('Failed to clear row');
+      }
+    },
+    [canEditForUser, weekDays]
+  );
+
+  const onToggleMember = useCallback((userId: string) => {
+    setExpandedByUser((prev) => {
+      const isOpen = prev[userId] !== false;
+      return { ...prev, [userId]: !isOpen };
+    });
+  }, []);
 
   return (
     <DashboardContent>
@@ -127,139 +182,57 @@ export function TimesheetView() {
         sx={{ mb: { xs: 3, md: 5 } }}
       />
 
-      <Card sx={{ p: 3 }}>
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-          alignItems={{ xs: 'stretch', md: 'center' }}
-          justifyContent="space-between"
-          sx={{ mb: 3 }}
-        >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Button
-              variant="outlined"
-              startIcon={<Iconify icon="eva:arrow-ios-back-fill" />}
-              onClick={() => shiftWeek(-7)}
-            >
-              Prev
-            </Button>
-            <Button variant="outlined" onClick={() => setSelectedDate(new Date())}>
-              This week
-            </Button>
-            <Button
-              variant="outlined"
-              endIcon={<Iconify icon="eva:arrow-ios-forward-fill" />}
-              onClick={() => shiftWeek(7)}
-            >
-              Next
-            </Button>
-          </Stack>
-
-          <DatePicker
-            label="Week containing"
-            value={dayjs(selectedDate)}
-            onChange={(value) => {
-              if (value) setSelectedDate(value.toDate());
-            }}
-            slotProps={{ textField: { size: 'small', sx: { maxWidth: 220 } } }}
+      <Card sx={{ p: { xs: 2, md: 3 } }}>
+        <Stack spacing={3}>
+          <TimesheetToolbar
+            viewMode={viewMode}
+            onViewMode={setViewMode}
+            selectedDate={selectedDate}
+            onSelectedDate={setSelectedDate}
+            weekDays={weekDays}
+            onPrev={() => shiftRange(-1)}
+            onNext={() => shiftRange(1)}
+            onToday={() => setSelectedDate(new Date())}
+            onAddTimeLog={openAdd}
+            canAdd={canLogTime}
+            loading={allEntriesLoading}
           />
 
-          <Typography variant="subtitle2">
-            Week total: <strong>{weekTotal.toFixed(1)}h</strong>
-          </Typography>
-        </Stack>
+          <TimesheetTable
+            mode={isManagerView ? 'manager' : 'member'}
+            viewerId={viewerId}
+            weekDays={weekDays}
+            todayIso={todayIso}
+            entriesInRange={entriesInRange}
+            memberIds={memberIds}
+            expandedByUser={expandedByUser}
+            onToggleMember={onToggleMember}
+            grandTotalsByDay={grandTotalsByDay}
+            grandWeekTotal={grandWeekTotal}
+            canEditForUser={canEditForUser}
+            onTaskCellClick={openTaskCell}
+            onClearTaskRow={handleClearTaskRow}
+          />
 
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Project</TableCell>
-                {weekDays.map((d, i) => (
-                  <TableCell key={d} align="center">
-                    <Stack spacing={0}>
-                      <Typography variant="caption" color="text.secondary">
-                        {DAY_LABELS[i]}
-                      </Typography>
-                      <Typography variant="caption">{d.slice(5)}</Typography>
-                    </Stack>
-                  </TableCell>
-                ))}
-                <TableCell align="right">Total</TableCell>
-                <TableCell />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((row) => {
-                const rowTotal = weekDays.reduce((sum, d) => sum + (row.hoursByDate[d] ?? 0), 0);
-                return (
-                  <TableRow key={row.projectId} hover>
-                    <TableCell>
-                      <Stack>
-                        <Typography variant="subtitle2">{row.projectName}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {row.projectCode}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    {weekDays.map((d) => (
-                      <TableCell key={d} align="center" sx={{ width: 80 }}>
-                        <TextField
-                          type="number"
-                          size="small"
-                          defaultValue={row.hoursByDate[d] || ''}
-                          inputProps={{ min: 0, max: 24, step: 0.25, style: { textAlign: 'center' } }}
-                          onBlur={(e) =>
-                            handleChangeHours(row.projectId, d, e.target.value, row.entryIds[d])
-                          }
-                          sx={{ width: 70 }}
-                        />
-                      </TableCell>
-                    ))}
-                    <TableCell align="right">
-                      <Typography variant="subtitle2">{rowTotal.toFixed(1)}h</Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          weekDays.forEach((d) => {
-                            const id = row.entryIds[d];
-                            if (id) deleteEntry(id);
-                          });
-                        }}
-                        aria-label="Clear week"
-                      >
-                        <Iconify icon="solar:trash-bin-trash-bold" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              <TableRow>
-                <TableCell>
-                  <Typography variant="subtitle2">Daily total</Typography>
-                </TableCell>
-                {weekDays.map((d) => (
-                  <TableCell key={d} align="center">
-                    <Typography variant="subtitle2">
-                      {(dailyTotals[d] ?? 0).toFixed(1)}h
-                    </Typography>
-                  </TableCell>
-                ))}
-                <TableCell align="right">
-                  <Typography variant="subtitle1">{weekTotal.toFixed(1)}h</Typography>
-                </TableCell>
-                <TableCell />
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
-        {timesheetLoading && (
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-            Loading...
-          </Typography>
-        )}
+          {allEntriesLoading && (
+            <Typography variant="caption" color="text.secondary">
+              Loading…
+            </Typography>
+          )}
+        </Stack>
       </Card>
+
+      <LogTimeDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        targetUserId={drawerContext.targetUserId}
+        historyEntries={historyEntries}
+        weekDays={weekDays}
+        defaultDate={drawerContext.defaultDate}
+        defaultProjectId={drawerContext.defaultProjectId}
+        defaultTaskId={drawerContext.defaultTaskId}
+        editingEntry={drawerContext.editing ?? undefined}
+      />
     </DashboardContent>
   );
 }

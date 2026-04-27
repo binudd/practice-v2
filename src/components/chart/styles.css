@@ -28,7 +28,7 @@
     font-weight: 700;
     text-align: center;
     color: var(--palette-text-secondary);
-    background-color: var(--palette-background-neutral);
+    background-color: var(--palette-background-subtle);
   }
   /**
   * Tooltip: group

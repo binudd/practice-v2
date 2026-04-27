@@ -90,7 +90,7 @@ export function ProfilePostItem({ post }: Props) {
         <Stack key={comment.id} direction="row" spacing={2}>
           <Avatar alt={comment.author.name} src={comment.author.avatarUrl} />
 
-          <Paper sx={{ p: 1.5, flexGrow: 1, bgcolor: 'background.neutral' }}>
+          <Paper sx={{ p: 1.5, flexGrow: 1, bgcolor: 'background.subtle' }}>
             <Stack
               sx={{ mb: 0.5 }}
               alignItems={{ sm: 'center' }}

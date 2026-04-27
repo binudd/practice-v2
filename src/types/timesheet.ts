@@ -5,12 +5,18 @@ export type ITimesheetEntry = {
   date: string;
   hours: number;
   note?: string;
+  taskId?: string;
+  taskName?: string;
 };
 
-export type ITimesheetRow = {
+export interface ITimesheetTaskRowModel {
+  rowKey: string;
+  userId: string;
   projectId: string;
   projectName: string;
   projectCode: string;
+  taskId?: string;
+  taskName?: string;
   hoursByDate: Record<string, number>;
   entryIds: Record<string, string>;
-};
+}

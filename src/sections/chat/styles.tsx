@@ -28,7 +28,7 @@ export const CollapseButton = styled(
   justifyContent: 'space-between',
   paddingRight: theme.spacing(1.5),
   color: theme.vars.palette.text.secondary,
-  backgroundColor: theme.vars.palette.background.neutral,
+  backgroundColor: theme.vars.palette.background.subtle,
 }));
 
 // ----------------------------------------------------------------------
