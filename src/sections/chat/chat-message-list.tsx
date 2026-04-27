@@ -28,7 +28,7 @@ export function ChatMessageList({ messages = [], participants, loading }: Props)
 
   if (loading) {
     return (
-      <Stack sx={{ flex: '1 1 auto', position: 'relative' }}>
+      <Stack sx={{ flex: '1 1 auto', minHeight: 0, position: 'relative' }}>
         <LinearProgress
           color="inherit"
           sx={{
@@ -46,7 +46,7 @@ export function ChatMessageList({ messages = [], participants, loading }: Props)
 
   return (
     <>
-      <Scrollbar ref={messagesEndRef} sx={{ px: 3, pt: 5, pb: 3, flex: '1 1 auto' }}>
+      <Scrollbar ref={messagesEndRef} sx={{ px: 3, pt: 5, pb: 3, flex: '1 1 auto', minHeight: 0 }}>
         {messages.map((message) => (
           <ChatMessageItem
             key={message.id}

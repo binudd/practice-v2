@@ -24,9 +24,15 @@ type Props = {
   participants: IChatParticipant[];
   collapseNav: UseNavCollapseReturn;
   messages: IChatConversation['messages'];
+  /**
+   * Embedded contexts (e.g. project discussion) stack the chat column vertically.
+   * The inline sidebar uses `flex: 1` which steals height from that column; use
+   * drawer-only and open details via `collapseNav.onOpenMobile`.
+   */
+  drawerOnly?: boolean;
 };
 
-export function ChatRoom({ collapseNav, participants, messages, loading }: Props) {
+export function ChatRoom({ collapseNav, participants, messages, loading, drawerOnly }: Props) {
   const theme = useTheme();
 
   const { collapseDesktop, openMobile, onCloseMobile } = collapseNav;
@@ -53,21 +59,23 @@ export function ChatRoom({ collapseNav, participants, messages, loading }: Props
 
   return (
     <>
-      <Stack
-        sx={{
-          minHeight: 0,
-          flex: '1 1 auto',
-          width: NAV_WIDTH,
-          display: { xs: 'none', lg: 'flex' },
-          borderLeft: `solid 1px ${theme.vars.palette.divider}`,
-          transition: theme.transitions.create(['width'], {
-            duration: theme.transitions.duration.shorter,
-          }),
-          ...(collapseDesktop && { width: 0 }),
-        }}
-      >
-        {!collapseDesktop && renderContent}
-      </Stack>
+      {!drawerOnly && (
+        <Stack
+          sx={{
+            minHeight: 0,
+            flex: '1 1 auto',
+            width: NAV_WIDTH,
+            display: { xs: 'none', lg: 'flex' },
+            borderLeft: `solid 1px ${theme.vars.palette.divider}`,
+            transition: theme.transitions.create(['width'], {
+              duration: theme.transitions.duration.shorter,
+            }),
+            ...(collapseDesktop && { width: 0 }),
+          }}
+        >
+          {!collapseDesktop && renderContent}
+        </Stack>
+      )}
 
       <Drawer
         anchor="right"

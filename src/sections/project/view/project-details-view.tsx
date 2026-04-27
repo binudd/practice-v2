@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import type { IProject } from 'src/domain/project';
 
+import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
+import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Card from '@mui/material/Card';
@@ -23,8 +27,17 @@ import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { KanbanView } from 'src/sections/kanban/view/kanban-view';
+import { ProjectDiscussionView } from 'src/sections/project/discussion';
 
 import { Can } from 'src/auth/guard';
+
+import {
+  PROJECT_DETAIL_TABS,
+  type ProjectDetailTabId,
+  isValidProjectDetailTabId,
+  PROJECT_DETAIL_DEFAULT_TAB,
+  parseProjectDetailTabParam,
+} from './project-details-tabs';
 
 // ----------------------------------------------------------------------
 
@@ -32,38 +45,16 @@ type Props = {
   id: string;
 };
 
-const TABS = [
-  { value: 'overview', label: 'Overview' },
-  { value: 'kanban', label: 'Kanban' },
-  { value: 'files', label: 'Files' },
-];
+function PlaceholderPanel({ title, description }: { title: string; description?: string }) {
+  return (
+    <Card sx={{ p: 3 }}>
+      <EmptyContent title={title} description={description ?? `${title} — coming soon.`} />
+    </Card>
+  );
+}
 
-export function ProjectDetailsView({ id }: Props) {
-  const { project, projectLoading, projectNotFound } = useGetProject(id);
-
-  const [tab, setTab] = useState<string>('overview');
-
-  if (projectNotFound) {
-    return (
-      <DashboardContent>
-        <EmptyContent
-          title="Project not found"
-          action={
-            <Button
-              component={RouterLink}
-              href={paths.dashboard.project.list}
-              variant="contained"
-              sx={{ mt: 2 }}
-            >
-              Back to projects
-            </Button>
-          }
-        />
-      </DashboardContent>
-    );
-  }
-
-  const renderOverview = project && (
+function renderOverviewPanel(project: IProject) {
+  return (
     <Card sx={{ p: 3 }}>
       <Stack spacing={3}>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -110,17 +101,115 @@ export function ProjectDetailsView({ id }: Props) {
       </Stack>
     </Card>
   );
+}
 
-  const renderKanban = project && <KanbanView projectId={project.id} title={project.name} />;
+function renderTabPanel(tab: ProjectDetailTabId, project: IProject | undefined) {
+  switch (tab) {
+    case 'overview':
+      return project ? renderOverviewPanel(project) : null;
+    case 'kanban':
+      return project ? <KanbanView projectId={project.id} title={project.name} /> : null;
+    case 'files':
+      return (
+        <PlaceholderPanel
+          title="Files"
+          description="File manager integration coming soon."
+        />
+      );
+    case 'discussion':
+      return project ? <ProjectDiscussionView projectId={project.id} project={project} /> : null;
+    case 'task-type':
+      return <PlaceholderPanel title="Task type" />;
+    case 'recurring':
+      return <PlaceholderPanel title="Recurring" />;
+    case 'notes':
+      return <PlaceholderPanel title="Notes" />;
+    case 'time':
+      return <PlaceholderPanel title="Time" />;
+    case 'expense':
+      return <PlaceholderPanel title="Expense" />;
+    case 'activity':
+      return <PlaceholderPanel title="Activity" />;
+    case 'automation':
+      return <PlaceholderPanel title="Automation" />;
+    case 'chat':
+      return <PlaceholderPanel title="Chat" />;
+    case 'mail':
+      return <PlaceholderPanel title="Mail" />;
+    default: {
+      const _exhaustive: never = tab;
+      return _exhaustive;
+    }
+  }
+}
 
-  const renderFiles = (
-    <Card sx={{ p: 3 }}>
-      <EmptyContent title="Files" description="File manager integration coming soon." />
-    </Card>
-  );
+export function ProjectDetailsView({ id }: Props) {
+  const { project, projectLoading, projectNotFound } = useGetProject(id);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTabParam = searchParams.get('tab');
+  const tab = parseProjectDetailTabParam(rawTabParam);
+
+  useEffect(() => {
+    if (rawTabParam !== null && !isValidProjectDetailTabId(rawTabParam)) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('tab');
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }, [rawTabParam, setSearchParams]);
+
+  const handleTabChange = (_: React.SyntheticEvent, value: ProjectDetailTabId) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value === PROJECT_DETAIL_DEFAULT_TAB) {
+          next.delete('tab');
+        } else {
+          next.set('tab', value);
+        }
+        if (value !== 'discussion') {
+          next.delete('topic');
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  if (projectNotFound) {
+    return (
+      <DashboardContent>
+        <EmptyContent
+          title="Project not found"
+          action={
+            <Button
+              component={RouterLink}
+              href={paths.dashboard.project.list}
+              variant="contained"
+              sx={{ mt: 2 }}
+            >
+              Back to projects
+            </Button>
+          }
+        />
+      </DashboardContent>
+    );
+  }
 
   return (
-    <DashboardContent>
+    <DashboardContent
+      sx={{
+        flex: '1 1 auto',
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
       <CustomBreadcrumbs
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
@@ -146,7 +235,7 @@ export function ProjectDetailsView({ id }: Props) {
 
       <Tabs
         value={tab}
-        onChange={(_, v) => setTab(v)}
+        onChange={handleTabChange}
         variant="scrollable"
         scrollButtons="auto"
         sx={{
@@ -155,7 +244,7 @@ export function ProjectDetailsView({ id }: Props) {
             `inset 0 -2px 0 0 ${varAlpha(theme.vars.palette.grey['500Channel'], 0.08)}`,
         }}
       >
-        {TABS.map((t) => (
+        {PROJECT_DETAIL_TABS.map((t) => (
           <Tab key={t.value} value={t.value} label={t.label} />
         ))}
       </Tabs>
@@ -163,11 +252,16 @@ export function ProjectDetailsView({ id }: Props) {
       {projectLoading ? (
         <EmptyContent title="Loading..." />
       ) : (
-        <>
-          {tab === 'overview' && renderOverview}
-          {tab === 'kanban' && renderKanban}
-          {tab === 'files' && renderFiles}
-        </>
+        <Box
+          sx={{
+            flex: '1 1 auto',
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {renderTabPanel(tab, project)}
+        </Box>
       )}
     </DashboardContent>
   );

@@ -58,6 +58,10 @@ export const endpoints = {
     search: '/api/product/search',
   },
   project: '/api/project',
+  projectDiscussionTopics: (projectId: string) =>
+    `/api/project/${projectId}/discussion/topics`,
+  projectDiscussionMessages: (topicId: string) =>
+    `/api/project/discussion/topics/${topicId}/messages`,
   timesheet: '/api/timesheet',
   permissionSettings: {
     menuList: '/api/permission-settings/menus',
