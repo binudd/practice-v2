@@ -128,6 +128,8 @@ export const dashboardRoutes = [
         ),
       },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'profile', element: <UserProfilePage /> },
+      { path: 'account', element: <UserAccountPage /> },
       {
         path: 'users',
         element: (
@@ -139,8 +141,6 @@ export const dashboardRoutes = [
           { element: <UserListPage />, index: true },
           { path: 'new', element: <UserNewPage /> },
           { path: ':id/edit', element: <UserEditPage /> },
-          { path: 'profile', element: <UserProfilePage /> },
-          { path: 'account', element: <UserAccountPage /> },
         ],
       },
       { path: 'files', element: <FileManagerPage /> },

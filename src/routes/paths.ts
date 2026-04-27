@@ -61,8 +61,9 @@ export const paths = {
       list: `${ROOTS.DASHBOARD}/users`,
       new: `${ROOTS.DASHBOARD}/users/new`,
       edit: (id: string) => `${ROOTS.DASHBOARD}/users/${id}/edit`,
-      profile: `${ROOTS.DASHBOARD}/users/profile`,
-      account: `${ROOTS.DASHBOARD}/users/account`,
+      /** Current user (all authenticated roles). */
+      profile: `${ROOTS.DASHBOARD}/profile`,
+      account: `${ROOTS.DASHBOARD}/account`,
     },
     files: `${ROOTS.DASHBOARD}/files`,
     chat: `${ROOTS.DASHBOARD}/chat`,

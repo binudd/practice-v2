@@ -1,19 +1,19 @@
-// ----------------------------------------------------------------------
+// Solar `*-bold` icons — names reused from elsewhere in this app where possible (Iconify).
 
 export const PROJECT_DETAIL_TABS = [
-  { value: 'kanban', label: 'Tasks' },
-  { value: 'overview', label: 'Overview' },
-  { value: 'discussion', label: 'Discussion' },
-  { value: 'task-type', label: 'Task type' },
-  { value: 'recurring', label: 'Recurring' },
-  { value: 'files', label: 'Files' },
-  { value: 'notes', label: 'Notes' },
-  { value: 'time', label: 'Time' },
-  { value: 'expense', label: 'Expense' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'automation', label: 'Automation' },
-  { value: 'chat', label: 'Chat' },
-  { value: 'mail', label: 'Mail' },
+  { value: 'kanban', label: 'Tasks', icon: 'solar:list-check-bold' },
+  { value: 'overview', label: 'Overview', icon: 'solar:info-circle-bold' },
+  { value: 'discussion', label: 'Discussion', icon: 'solar:chat-round-dots-bold' },
+  { value: 'task-type', label: 'Task type', icon: 'solar:layers-bold' },
+  { value: 'recurring', label: 'Recurring', icon: 'solar:calendar-bold' },
+  { value: 'files', label: 'Files', icon: 'solar:document-bold' },
+  { value: 'notes', label: 'Notes', icon: 'solar:notes-bold' },
+  { value: 'time', label: 'Time', icon: 'solar:clock-circle-bold' },
+  { value: 'expense', label: 'Expense', icon: 'solar:bill-list-bold' },
+  { value: 'activity', label: 'Activity', icon: 'solar:refresh-bold' },
+  { value: 'automation', label: 'Automation', icon: 'solar:bolt-bold' },
+  { value: 'chat', label: 'Chat', icon: 'solar:chat-round-bold' },
+  { value: 'mail', label: 'Mail', icon: 'solar:letter-bold' },
 ] as const;
 
 export type ProjectDetailTabId = (typeof PROJECT_DETAIL_TABS)[number]['value'];

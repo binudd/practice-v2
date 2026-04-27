@@ -4,6 +4,7 @@ import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/config-global';
 
+import { Iconify } from 'src/components/iconify';
 import { SvgColor } from 'src/components/svg-color';
 
 // ----------------------------------------------------------------------
@@ -18,13 +19,20 @@ const ICONS = {
   kanban: icon('ic-kanban'),
   calendar: icon('ic-calendar'),
   folder: icon('ic-folder'),
-  file: icon('ic-file'),
+  /** Iconify: navbar `ic-file.svg` is a poor mask source in some themes; match project Files tab. */
+  file: <Iconify icon="solar:document-bold" width={24} />,
   user: icon('ic-user'),
   chat: icon('ic-chat'),
   mail: icon('ic-mail'),
   invoice: icon('ic-invoice'),
   label: icon('ic-label'),
   order: icon('ic-order'),
+};
+
+/** Submenu icons: same Solar bold family as account / project tabs (nav vertical/mini). */
+const SUB = {
+  list: <Iconify icon="solar:list-bold" width={22} />,
+  add: <Iconify icon="solar:add-circle-bold" width={22} />,
 };
 
 // Reusable role groups
@@ -59,8 +67,8 @@ export const navData = [
         icon: ICONS.folder,
         roles: ALL,
         children: [
-          { title: 'List', path: paths.dashboard.project.list, roles: ALL },
-          { title: 'New', path: paths.dashboard.project.new, roles: PROJECT_EDIT },
+          { title: 'List', path: paths.dashboard.project.list, roles: ALL, icon: SUB.list },
+          { title: 'New', path: paths.dashboard.project.new, roles: PROJECT_EDIT, icon: SUB.add },
         ],
       },
       {
@@ -106,10 +114,8 @@ export const navData = [
         icon: ICONS.user,
         roles: ADMIN_ONLY,
         children: [
-          { title: 'List', path: paths.dashboard.user.list, roles: ADMIN_ONLY },
-          { title: 'New', path: paths.dashboard.user.new, roles: ADMIN_ONLY },
-          { title: 'Profile', path: paths.dashboard.user.profile, roles: ALL },
-          { title: 'Account', path: paths.dashboard.user.account, roles: ALL },
+          { title: 'List', path: paths.dashboard.user.list, roles: ADMIN_ONLY, icon: SUB.list },
+          { title: 'New', path: paths.dashboard.user.new, roles: ADMIN_ONLY, icon: SUB.add },
         ],
       },
     ],
@@ -126,8 +132,13 @@ export const navData = [
         icon: ICONS.invoice,
         roles: INVOICE_VIEWERS,
         children: [
-          { title: 'List', path: paths.dashboard.invoice.list, roles: INVOICE_VIEWERS },
-          { title: 'New', path: paths.dashboard.invoice.new, roles: ADMIN_ONLY },
+          {
+            title: 'List',
+            path: paths.dashboard.invoice.list,
+            roles: INVOICE_VIEWERS,
+            icon: SUB.list,
+          },
+          { title: 'New', path: paths.dashboard.invoice.new, roles: ADMIN_ONLY, icon: SUB.add },
         ],
       },
     ],

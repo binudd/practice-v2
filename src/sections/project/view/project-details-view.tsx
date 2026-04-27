@@ -241,7 +241,13 @@ export function ProjectDetailsView({ id }: Props) {
         }}
       >
         {PROJECT_DETAIL_TABS.map((t) => (
-          <Tab key={t.value} value={t.value} label={t.label} />
+          <Tab
+            key={t.value}
+            value={t.value}
+            label={t.label}
+            icon={<Iconify icon={t.icon} width={24} />}
+            iconPosition="start"
+          />
         ))}
       </Tabs>
 

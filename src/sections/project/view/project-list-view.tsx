@@ -191,6 +191,26 @@ export function ProjectListView() {
     return { active, onHold, completed, archived, templates, recurring, total: projects.length };
   }, [projects]);
 
+  /** Tab badges: same search scope as the list; ignores drawer filters (priority / date). */
+  const moduleTabCounts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const matchesSearch = (project: IProject) =>
+      !q ||
+      project.name.toLowerCase().includes(q) ||
+      project.code.toLowerCase().includes(q) ||
+      project.ownerName.toLowerCase().includes(q);
+
+    const scoped = projects.filter(matchesSearch);
+
+    return {
+      active: scoped.filter((p) => matchesModuleTab(p, 'active')).length,
+      completed: scoped.filter((p) => matchesModuleTab(p, 'completed')).length,
+      templates: scoped.filter((p) => matchesModuleTab(p, 'templates')).length,
+      recurring: scoped.filter((p) => matchesModuleTab(p, 'recurring')).length,
+      overview: scoped.length,
+    } satisfies Record<ModuleTab, number>;
+  }, [projects, search]);
+
   const dataFiltered = useMemo(() => {
     if (moduleTab === 'overview') return [];
 
@@ -416,7 +436,11 @@ export function ProjectListView() {
             }}
           >
             {MODULE_TABS.map((t) => (
-              <Tab key={t.value} value={t.value} label={t.label} />
+              <Tab
+                key={t.value}
+                value={t.value}
+                label={`${t.label} (${moduleTabCounts[t.value]})`}
+              />
             ))}
           </Tabs>
 

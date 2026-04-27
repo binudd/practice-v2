@@ -14,7 +14,7 @@ export const _account = [
   },
   {
     label: 'Profile',
-    href: '#',
+    href: paths.dashboard.user.profile,
     icon: (
       <SvgIcon>
         <path
@@ -31,13 +31,12 @@ export const _account = [
   },
   {
     label: 'Projects',
-    href: '#',
+    href: paths.dashboard.project.list,
     icon: <Iconify icon="solar:notes-bold-duotone" />,
-    info: '3',
   },
   {
     label: 'Subscription',
-    href: '#',
+    href: `${paths.dashboard.user.account}?tab=billing`,
     icon: (
       <SvgIcon>
         <path
@@ -60,11 +59,16 @@ export const _account = [
   },
   {
     label: 'Security',
-    href: '#',
+    href: `${paths.dashboard.user.account}?tab=security`,
     icon: <Iconify icon="solar:shield-keyhole-bold-duotone" />,
   },
   {
-    label: 'Account settings',
+    label: 'My account',
+    href: paths.dashboard.user.account,
+    icon: <Iconify icon="solar:user-rounded-bold-duotone" />,
+  },
+  {
+    label: 'Workspace settings',
     href: paths.dashboard.settings,
     icon: <Iconify icon="solar:settings-bold-duotone" />,
   },
