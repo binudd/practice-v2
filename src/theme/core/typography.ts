@@ -20,11 +20,11 @@ declare module '@mui/material/styles' {
 
 // ----------------------------------------------------------------------
 
-export const defaultFont = 'Public Sans';
+export const defaultFont = 'Roboto';
 
 export const primaryFont = setFont(defaultFont);
 
-export const secondaryFont = setFont('Barlow');
+export const secondaryFont = primaryFont;
 
 // ----------------------------------------------------------------------
 
@@ -37,14 +37,14 @@ export const typography: TypographyOptions = {
   fontWeightSemiBold: '600',
   fontWeightBold: '700',
   h1: {
-    fontWeight: 800,
+    fontWeight: 700,
     lineHeight: 80 / 64,
     fontSize: pxToRem(40),
     fontFamily: secondaryFont,
     ...responsiveFontSizes({ sm: 52, md: 58, lg: 64 }),
   },
   h2: {
-    fontWeight: 800,
+    fontWeight: 700,
     lineHeight: 64 / 48,
     fontSize: pxToRem(32),
     fontFamily: secondaryFont,

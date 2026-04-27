@@ -31,6 +31,7 @@
     "@fontsource/inter": "^5.0.18",
     "@fontsource/nunito-sans": "^5.0.13",
     "@fontsource/public-sans": "^5.0.18",
+    "@fontsource/roboto": "^5.2.10",
     "@fullcalendar/core": "^6.1.14",
     "@fullcalendar/daygrid": "^6.1.14",
     "@fullcalendar/interaction": "^6.1.14",
