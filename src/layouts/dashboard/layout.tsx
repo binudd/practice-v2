@@ -16,7 +16,7 @@ import { varAlpha, stylesMode } from 'src/theme/styles';
 import { bulletColor } from 'src/components/nav-section';
 import { useSettingsContext } from 'src/components/settings';
 
-import { useCurrentRole } from 'src/auth/hooks';
+import { useCurrentRole, useHasPermission } from 'src/auth/hooks';
 
 import { Main } from './main';
 import { NavMobile } from './nav-mobile';
@@ -28,6 +28,7 @@ import { HeaderBase } from '../core/header-base';
 import { _workspaces } from '../config-nav-workspace';
 import { LayoutSection } from '../core/layout-section';
 import { navData as dashboardNavData } from '../config-nav-dashboard';
+import { filterDashboardNavByProjectCreate } from './filter-dashboard-nav';
 
 // ----------------------------------------------------------------------
 
@@ -50,7 +51,13 @@ export function DashboardLayout({ sx, children, data }: DashboardLayoutProps) {
 
   const layoutQuery: Breakpoint = 'lg';
 
-  const navData = data?.nav ?? dashboardNavData;
+  const canCreateProject = useHasPermission('project:create');
+
+  const navData = useMemo(
+    () =>
+      filterDashboardNavByProjectCreate(data?.nav ?? dashboardNavData, canCreateProject),
+    [data?.nav, canCreateProject]
+  );
 
   const currentRole = useCurrentRole();
 
