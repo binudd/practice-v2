@@ -62,6 +62,16 @@ export const endpoints = {
     `/api/project/${projectId}/discussion/topics`,
   projectDiscussionMessages: (topicId: string) =>
     `/api/project/discussion/topics/${topicId}/messages`,
+  projectNotes: (projectId: string) => `/api/project/${projectId}/notes`,
+  projectFiles: (projectId: string) => `/api/project/${projectId}/files`,
+  projectTaskTypes: (projectId: string) => `/api/project/${projectId}/task-types`,
+  projectRecurring: (projectId: string) => `/api/project/${projectId}/recurring`,
+  projectTimeEntries: (projectId: string) => `/api/project/${projectId}/time-entries`,
+  projectExpenses: (projectId: string) => `/api/project/${projectId}/expenses`,
+  projectActivity: (projectId: string) => `/api/project/${projectId}/activity`,
+  projectAutomations: (projectId: string) => `/api/project/${projectId}/automations`,
+  projectChatShortcuts: (projectId: string) => `/api/project/${projectId}/chat-shortcuts`,
+  projectMailThreads: (projectId: string) => `/api/project/${projectId}/mail-threads`,
   timesheet: '/api/timesheet',
   permissionSettings: {
     menuList: '/api/permission-settings/menus',

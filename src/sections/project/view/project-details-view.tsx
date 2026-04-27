@@ -26,11 +26,22 @@ import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { ProjectTimeView } from 'src/sections/project/time';
+import { ProjectChatView } from 'src/sections/project/chat';
+import { ProjectMailView } from 'src/sections/project/mail';
+import { ProjectNotesView } from 'src/sections/project/notes';
+import { ProjectFilesView } from 'src/sections/project/files';
 import { KanbanView } from 'src/sections/kanban/view/kanban-view';
+import { ProjectExpenseView } from 'src/sections/project/expense';
+import { ProjectActivityView } from 'src/sections/project/activity';
+import { ProjectTaskTypesView } from 'src/sections/project/task-type';
+import { ProjectRecurringView } from 'src/sections/project/recurring';
 import { ProjectDiscussionView } from 'src/sections/project/discussion';
+import { ProjectAutomationView } from 'src/sections/project/automation';
 
 import { Can } from 'src/auth/guard';
 
+import { PROJECT_DETAIL_QUERY_KEYS } from './project-detail-query-params';
 import {
   PROJECT_DETAIL_TABS,
   type ProjectDetailTabId,
@@ -44,14 +55,6 @@ import {
 type Props = {
   id: string;
 };
-
-function PlaceholderPanel({ title, description }: { title: string; description?: string }) {
-  return (
-    <Card sx={{ p: 3 }}>
-      <EmptyContent title={title} description={description ?? `${title} — coming soon.`} />
-    </Card>
-  );
-}
 
 function renderOverviewPanel(project: IProject) {
   return (
@@ -110,32 +113,27 @@ function renderTabPanel(tab: ProjectDetailTabId, project: IProject | undefined) 
     case 'kanban':
       return project ? <KanbanView projectId={project.id} title={project.name} /> : null;
     case 'files':
-      return (
-        <PlaceholderPanel
-          title="Files"
-          description="File manager integration coming soon."
-        />
-      );
+      return project ? <ProjectFilesView projectId={project.id} /> : null;
     case 'discussion':
       return project ? <ProjectDiscussionView projectId={project.id} project={project} /> : null;
     case 'task-type':
-      return <PlaceholderPanel title="Task type" />;
+      return project ? <ProjectTaskTypesView projectId={project.id} /> : null;
     case 'recurring':
-      return <PlaceholderPanel title="Recurring" />;
+      return project ? <ProjectRecurringView projectId={project.id} /> : null;
     case 'notes':
-      return <PlaceholderPanel title="Notes" />;
+      return project ? <ProjectNotesView projectId={project.id} /> : null;
     case 'time':
-      return <PlaceholderPanel title="Time" />;
+      return project ? <ProjectTimeView projectId={project.id} /> : null;
     case 'expense':
-      return <PlaceholderPanel title="Expense" />;
+      return project ? <ProjectExpenseView projectId={project.id} /> : null;
     case 'activity':
-      return <PlaceholderPanel title="Activity" />;
+      return project ? <ProjectActivityView projectId={project.id} /> : null;
     case 'automation':
-      return <PlaceholderPanel title="Automation" />;
+      return project ? <ProjectAutomationView projectId={project.id} /> : null;
     case 'chat':
-      return <PlaceholderPanel title="Chat" />;
+      return project ? <ProjectChatView projectId={project.id} /> : null;
     case 'mail':
-      return <PlaceholderPanel title="Mail" />;
+      return project ? <ProjectMailView projectId={project.id} /> : null;
     default: {
       const _exhaustive: never = tab;
       return _exhaustive;
@@ -172,9 +170,7 @@ export function ProjectDetailsView({ id }: Props) {
         } else {
           next.set('tab', value);
         }
-        if (value !== 'discussion') {
-          next.delete('topic');
-        }
+        PROJECT_DETAIL_QUERY_KEYS.forEach((key) => next.delete(key));
         return next;
       },
       { replace: true }
