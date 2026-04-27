@@ -386,7 +386,6 @@ export function ProjectCreateForm({ mode = 'create', current }: ProjectFormProps
                   ))}
                 </Field.Select>
               </Grid>
-              <Grid xs={12} md={6} />
               <Grid xs={12} md={6}>
                 <Field.Text name="name" label="Project name *" />
               </Grid>
@@ -433,7 +432,7 @@ export function ProjectCreateForm({ mode = 'create', current }: ProjectFormProps
                   ))}
                 </Field.Select>
               </Grid>
-              <Grid xs={12}>
+              <Grid xs={12} md={6}>
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>
                   Priority
                 </Typography>
@@ -555,6 +554,8 @@ export function ProjectCreateForm({ mode = 'create', current }: ProjectFormProps
                 <Field.RadioGroup
                   name="budgetType"
                   label="Budget type *"
+                  row
+                  sx={{ flexWrap: 'wrap', columnGap: 2, rowGap: 0.5 }}
                   options={[
                     { value: 'fixed', label: 'Fixed price' },
                     { value: 'time_expenses', label: 'Time and expenses' },
