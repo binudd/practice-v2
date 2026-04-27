@@ -1,9 +1,9 @@
 import type { BoxProps } from '@mui/material/Box';
 import type { NavSectionProps } from 'src/components/nav-section';
 
-import { useState, useCallback } from 'react';
 import parse from 'autosuggest-highlight/parse';
 import match from 'autosuggest-highlight/match';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import SvgIcon from '@mui/material/SvgIcon';
@@ -13,18 +13,25 @@ import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Dialog, { dialogClasses } from '@mui/material/Dialog';
 
-import { useRouter } from 'src/routes/hooks';
+import { paths } from 'src/routes/paths';
 import { isExternalLink } from 'src/routes/utils';
+import { useRouter, usePathname } from 'src/routes/hooks';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 import { useEventListener } from 'src/hooks/use-event-listener';
 
 import { varAlpha } from 'src/theme/styles';
+import { useGetProjects } from 'src/actions/project';
+import { useFiltersStore, selectScreenFilter } from 'src/store/filters-store';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { SearchNotFound } from 'src/components/search-not-found';
+
+import { PROJECT_LIST_FILTER_KEY } from 'src/sections/project/project-list-filter-key';
+
+import { useCurrentRole } from 'src/auth/hooks';
 
 import { ResultItem } from './result-item';
 import { groupItems, applyFilter, getAllItems } from './utils';
@@ -35,10 +42,33 @@ export type SearchbarProps = BoxProps & {
   data?: NavSectionProps['data'];
 };
 
+function projectMatchesQuery(
+  project: { name: string; code: string; ownerName: string },
+  query: string
+) {
+  const q = query.toLowerCase();
+  return (
+    project.name.toLowerCase().includes(q) ||
+    project.code.toLowerCase().includes(q) ||
+    project.ownerName.toLowerCase().includes(q)
+  );
+}
+
 export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps) {
   const theme = useTheme();
 
   const router = useRouter();
+  const pathname = usePathname();
+
+  const role = useCurrentRole();
+  const { projects } = useGetProjects({
+    scope: role === 'client' ? 'mine' : 'all',
+  });
+
+  const isProjectListPage = pathname === paths.dashboard.project.list;
+
+  const projectListFilter = useFiltersStore(selectScreenFilter(PROJECT_LIST_FILTER_KEY));
+  const setFilter = useFiltersStore((s) => s.setFilter);
 
   const search = useBoolean();
 
@@ -49,10 +79,21 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
     setSearchQuery('');
   }, [search]);
 
+  useEffect(() => {
+    if (!search.value) {
+      return;
+    }
+    if (isProjectListPage) {
+      setSearchQuery((projectListFilter.search as string | undefined) ?? '');
+    } else {
+      setSearchQuery('');
+    }
+  }, [search.value, isProjectListPage, projectListFilter.search]);
+
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'k' && event.metaKey) {
+      event.preventDefault();
       search.onToggle();
-      setSearchQuery('');
     }
   };
 
@@ -70,18 +111,33 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
     [handleClose, router]
   );
 
-  const handleSearch = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setSearchQuery(event.target.value);
-  }, []);
+  const handleSearch = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const { value } = event.target;
+      setSearchQuery(value);
+      if (isProjectListPage) {
+        setFilter(PROJECT_LIST_FILTER_KEY, { search: value });
+      }
+    },
+    [isProjectListPage, setFilter]
+  );
 
   const dataFiltered = applyFilter({
     inputData: getAllItems({ data: navItems }),
     query: searchQuery,
   });
 
-  const notFound = searchQuery && !dataFiltered.length;
+  const projectHits = useMemo(() => {
+    if (!isProjectListPage || !searchQuery.trim()) {
+      return [];
+    }
+    return projects.filter((p) => projectMatchesQuery(p, searchQuery.trim())).slice(0, 10);
+  }, [isProjectListPage, projects, searchQuery]);
 
-  const renderItems = () => {
+  const hasProjectResults = projectHits.length > 0;
+  const notFound = Boolean(searchQuery) && !dataFiltered.length && !hasProjectResults;
+
+  const renderNavItems = () => {
     const dataGroups = groupItems(dataFiltered);
 
     return Object.keys(dataGroups)
@@ -108,6 +164,35 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
           })}
         </Box>
       ));
+  };
+
+  const renderProjectItems = () => {
+    if (!hasProjectResults) {
+      return null;
+    }
+
+    return (
+      <Box component="ul" sx={{ mb: dataFiltered.length ? 2 : 0 }}>
+        {projectHits.map((project, index) => {
+          const title = `${project.name} (${project.code})`;
+          const pathLabel = `${project.ownerName} · ${paths.dashboard.project.details(project.id)}`;
+
+          const partsTitle = parse(title, match(title, searchQuery));
+          const partsPath = parse(pathLabel, match(pathLabel, searchQuery));
+
+          return (
+            <Box component="li" key={project.id} sx={{ display: 'flex' }}>
+              <ResultItem
+                path={partsPath}
+                title={partsTitle}
+                groupLabel={searchQuery && index === 0 ? 'Projects' : ''}
+                onClickItem={() => handleClick(paths.dashboard.project.details(project.id))}
+              />
+            </Box>
+          );
+        })}
+      </Box>
+    );
   };
 
   const renderButton = (
@@ -148,6 +233,10 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
     </Box>
   );
 
+  const inputPlaceholder = isProjectListPage
+    ? 'Search projects & navigation…'
+    : 'Search…';
+
   return (
     <>
       {renderButton}
@@ -166,7 +255,7 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
           <InputBase
             fullWidth
             autoFocus
-            placeholder="Search..."
+            placeholder={inputPlaceholder}
             value={searchQuery}
             onChange={handleSearch}
             startAdornment={
@@ -182,7 +271,10 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
         {notFound ? (
           <SearchNotFound query={searchQuery} sx={{ py: 15 }} />
         ) : (
-          <Scrollbar sx={{ px: 3, pb: 3, pt: 2, height: 400 }}>{renderItems()}</Scrollbar>
+          <Scrollbar sx={{ px: 3, pb: 3, pt: 2, height: 400 }}>
+            {renderProjectItems()}
+            {renderNavItems()}
+          </Scrollbar>
         )}
       </Dialog>
     </>

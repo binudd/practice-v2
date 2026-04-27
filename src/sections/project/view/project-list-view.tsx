@@ -1,6 +1,7 @@
+import type { IDatePickerControl } from 'src/types/common';
 import type { ViewMode } from 'src/store/ui-preferences-store';
 import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
-import type { IProject, IProjectStatus } from 'src/types/project';
+import type { IProject, IProjectStatus, IProjectPriority } from 'src/types/project';
 
 import { useMemo, useCallback } from 'react';
 
@@ -9,21 +10,24 @@ import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
+import Badge from '@mui/material/Badge';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Grid from '@mui/material/Unstable_Grid2';
-import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import ToggleButton from '@mui/material/ToggleButton';
 import { DataGrid, gridClasses } from '@mui/x-data-grid';
-import InputAdornment from '@mui/material/InputAdornment';
 import LinearProgress from '@mui/material/LinearProgress';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
+
+import { useBoolean } from 'src/hooks/use-boolean';
+
+import { fIsAfter, fIsBetween } from 'src/utils/format-time';
 
 import { varAlpha } from 'src/theme/styles';
 import { useGetProjects } from 'src/actions/project';
@@ -41,10 +45,13 @@ import { Can } from 'src/auth/guard';
 import { useCurrentRole } from 'src/auth/hooks';
 
 import { ProjectCardList } from '../project-card-list';
+import { ProjectListFilters } from '../project-list-filters';
+import { PROJECT_LIST_FILTER_KEY } from '../project-list-filter-key';
+import { ProjectListFiltersResult } from '../project-list-filters-result';
 
 // ----------------------------------------------------------------------
 
-const SCREEN_KEY = 'project.list';
+const SCREEN_KEY = PROJECT_LIST_FILTER_KEY;
 
 const MODULE_TABS = [
   { value: 'active', label: 'Active' },
@@ -99,10 +106,19 @@ function matchesModuleTab(project: IProject, tab: ListModuleTab): boolean {
   return project.isRecurring;
 }
 
+const PRIORITY_SET = new Set<IProjectPriority>(['low', 'medium', 'high']);
+
+function normalizePriorities(raw: unknown): IProjectPriority[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((p): p is IProjectPriority => PRIORITY_SET.has(p as IProjectPriority));
+}
+
 // ----------------------------------------------------------------------
 
 export function ProjectListView() {
   const router = useRouter();
+
+  const openFilters = useBoolean();
 
   const role = useCurrentRole();
 
@@ -121,6 +137,21 @@ export function ProjectListView() {
   const rawModuleTab = filter.moduleTab as string | undefined;
   const moduleTab: ModuleTab =
     rawModuleTab && MODULE_TAB_SET.has(rawModuleTab) ? (rawModuleTab as ModuleTab) : 'active';
+
+  const priorities = normalizePriorities(filter.priorities);
+  const filterStartDate = (filter.startDate as IDatePickerControl | undefined) ?? null;
+  const filterEndDate = (filter.endDate as IDatePickerControl | undefined) ?? null;
+
+  const dateError = Boolean(
+    filterStartDate && filterEndDate && fIsAfter(filterStartDate, filterEndDate)
+  );
+
+  const canReset =
+    priorities.length > 0 || Boolean(filterStartDate && filterEndDate);
+
+  const resetDrawerFilters = useCallback(() => {
+    setFilter(SCREEN_KEY, { priorities: [], startDate: null, endDate: null });
+  }, [setFilter]);
 
   const handleChangeView = useCallback(
     (event: React.MouseEvent<HTMLElement>, newView: ViewMode | null) => {
@@ -170,9 +201,31 @@ export function ProjectListView() {
         project.code.toLowerCase().includes(search.toLowerCase()) ||
         project.ownerName.toLowerCase().includes(search.toLowerCase());
 
-      return matchesSearch && matchesModuleTab(project, moduleTab);
+      if (!matchesSearch || !matchesModuleTab(project, moduleTab)) {
+        return false;
+      }
+
+      if (priorities.length && !priorities.includes(project.priority)) {
+        return false;
+      }
+
+      if (!dateError && filterStartDate && filterEndDate) {
+        if (!fIsBetween(project.startDate, filterStartDate, filterEndDate)) {
+          return false;
+        }
+      }
+
+      return true;
     });
-  }, [moduleTab, projects, search]);
+  }, [
+    moduleTab,
+    projects,
+    search,
+    priorities,
+    dateError,
+    filterStartDate,
+    filterEndDate,
+  ]);
 
   const notFound = !projectsLoading && !projectsEmpty && dataFiltered.length === 0;
 
@@ -252,39 +305,6 @@ export function ProjectListView() {
     },
   ];
 
-  const renderToolbar = (
-    <Stack
-      spacing={2}
-      direction={{ xs: 'column', md: 'row' }}
-      alignItems={{ xs: 'stretch', md: 'center' }}
-      sx={{ mb: 2.5 }}
-    >
-      <TextField
-        size="small"
-        placeholder="Search projects..."
-        value={search}
-        onChange={(e) => setFilter(SCREEN_KEY, { search: e.target.value })}
-        sx={{ flex: 1 }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
-            </InputAdornment>
-          ),
-        }}
-      />
-
-      <ToggleButtonGroup size="small" value={view} exclusive onChange={handleChangeView}>
-        <ToggleButton value="list" aria-label="List view">
-          <Iconify icon="solar:list-bold" />
-        </ToggleButton>
-        <ToggleButton value="grid" aria-label="Grid view">
-          <Iconify icon="mingcute:dot-grid-fill" />
-        </ToggleButton>
-      </ToggleButtonGroup>
-    </Stack>
-  );
-
   const renderList = (
     <Card sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
       <DataGrid
@@ -336,63 +356,129 @@ export function ProjectListView() {
   );
 
   return (
-    <DashboardContent>
-      <CustomBreadcrumbs
-        links={[
-          { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Projects', href: paths.dashboard.project.root },
-          { name: 'List' },
-        ]}
-        action={
-          <Can perm="project:create">
-            <Button
-              component={RouterLink}
-              href={paths.dashboard.project.new}
-              variant="contained"
-              startIcon={<Iconify icon="mingcute:add-line" />}
-            >
-              New project
-            </Button>
-          </Can>
-        }
-        sx={{ mb: { xs: 2, md: 3 } }}
-      />
+    <>
+      <DashboardContent>
+        <CustomBreadcrumbs
+          links={[
+            { name: 'Dashboard', href: paths.dashboard.root },
+            { name: 'Projects', href: paths.dashboard.project.root },
+            { name: 'List' },
+          ]}
+          action={
+            <Can perm="project:create">
+              <Button
+                component={RouterLink}
+                href={paths.dashboard.project.new}
+                variant="contained"
+                startIcon={<Iconify icon="mingcute:add-line" />}
+              >
+                New project
+              </Button>
+            </Can>
+          }
+          sx={{ mb: { xs: 2, md: 3 } }}
+        />
 
-      <Tabs
-        value={moduleTab}
-        onChange={handleModuleTabChange}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{
-          mb: 2.5,
-          boxShadow: (theme) =>
-            `inset 0 -2px 0 0 ${varAlpha(theme.vars.palette.grey['500Channel'], 0.08)}`,
-        }}
-      >
-        {MODULE_TABS.map((t) => (
-          <Tab key={t.value} value={t.value} label={t.label} />
-        ))}
-      </Tabs>
+        {canReset && moduleTab !== 'overview' && (
+          <ProjectListFiltersResult
+            totalResults={dataFiltered.length}
+            priorities={priorities}
+            startDate={filterStartDate}
+            endDate={filterEndDate}
+            onReset={resetDrawerFilters}
+            onRemovePriority={(p) =>
+              setFilter(SCREEN_KEY, { priorities: priorities.filter((x) => x !== p) })
+            }
+            onRemoveDateRange={() =>
+              setFilter(SCREEN_KEY, { startDate: null, endDate: null })
+            }
+            sx={{ mb: { xs: 2, md: 2.5 } }}
+          />
+        )}
 
-      {moduleTab === 'overview' ? (
-        projectsLoading ? (
-          <EmptyContent title="Loading…" sx={{ py: 10 }} />
-        ) : (
-          renderOverview
-        )
-      ) : (
-        <>
-          {renderToolbar}
+        <Stack
+          direction="row"
+          alignItems="flex-end"
+          justifyContent="space-between"
+          spacing={2}
+          sx={{ mb: 2.5 }}
+        >
+          <Tabs
+            value={moduleTab}
+            onChange={handleModuleTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              boxShadow: (theme) =>
+                `inset 0 -2px 0 0 ${varAlpha(theme.vars.palette.grey['500Channel'], 0.08)}`,
+            }}
+          >
+            {MODULE_TABS.map((t) => (
+              <Tab key={t.value} value={t.value} label={t.label} />
+            ))}
+          </Tabs>
 
-          {projectsEmpty ? (
-            <EmptyContent title="No projects" sx={{ py: 10 }} />
-          ) : notFound ? (
-            <EmptyContent title={EMPTY_TITLE[moduleTab]} sx={{ py: 10 }} />
-          ) : (
-            <>{view === 'list' ? renderList : renderGrid}</>
+          {moduleTab !== 'overview' && (
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ flexShrink: 0, mb: 0.5 }}>
+              <Tooltip title="Filters">
+                <IconButton onClick={openFilters.onTrue}>
+                  <Badge color="error" variant="dot" invisible={!canReset}>
+                    <Iconify icon="ic:round-filter-list" />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+
+              <ToggleButtonGroup
+                size="small"
+                value={view}
+                exclusive
+                onChange={handleChangeView}
+              >
+                <ToggleButton value="list" aria-label="List view">
+                  <Iconify icon="solar:list-bold" />
+                </ToggleButton>
+                <ToggleButton value="grid" aria-label="Grid view">
+                  <Iconify icon="mingcute:dot-grid-fill" />
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Stack>
           )}
-        </>
-      )}
-    </DashboardContent>
+        </Stack>
+
+        {moduleTab === 'overview' ? (
+          projectsLoading ? (
+            <EmptyContent title="Loading…" sx={{ py: 10 }} />
+          ) : (
+            renderOverview
+          )
+        ) : (
+          <>
+            {projectsEmpty ? (
+              <EmptyContent title="No projects" sx={{ py: 10 }} />
+            ) : notFound ? (
+              <EmptyContent title={EMPTY_TITLE[moduleTab]} sx={{ py: 10 }} />
+            ) : (
+              <>{view === 'list' ? renderList : renderGrid}</>
+            )}
+          </>
+        )}
+      </DashboardContent>
+
+      <ProjectListFilters
+        open={openFilters.value}
+        onClose={openFilters.onFalse}
+        canReset={canReset}
+        dateError={dateError}
+        onReset={resetDrawerFilters}
+        priorities={priorities}
+        startDate={filterStartDate}
+        endDate={filterEndDate}
+        onChangePriorities={(value) => setFilter(SCREEN_KEY, { priorities: value })}
+        onChangeStartDate={(value) => setFilter(SCREEN_KEY, { startDate: value })}
+        onChangeEndDate={(value) => setFilter(SCREEN_KEY, { endDate: value })}
+      />
+    </>
   );
 }
