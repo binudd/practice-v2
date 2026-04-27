@@ -27,3 +27,5 @@ export * from './_overview';
 export * from './_calendar';
 
 export * from './_timesheet';
+
+export * from './_menu-permissions';

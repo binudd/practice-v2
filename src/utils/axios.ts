@@ -59,4 +59,7 @@ export const endpoints = {
   },
   project: '/api/project',
   timesheet: '/api/timesheet',
+  permissionSettings: {
+    menuList: '/api/permission-settings/menus',
+  },
 };

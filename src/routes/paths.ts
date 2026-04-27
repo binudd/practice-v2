@@ -55,6 +55,7 @@ export const paths = {
     kanban: `${ROOTS.DASHBOARD}/kanban`,
     calendar: `${ROOTS.DASHBOARD}/calendar`,
     timesheet: `${ROOTS.DASHBOARD}/timesheet`,
+    settings: `${ROOTS.DASHBOARD}/settings`,
     user: {
       root: `${ROOTS.DASHBOARD}/users`,
       list: `${ROOTS.DASHBOARD}/users`,

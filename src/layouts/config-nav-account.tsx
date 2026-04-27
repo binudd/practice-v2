@@ -1,5 +1,7 @@
 import SvgIcon from '@mui/material/SvgIcon';
 
+import { paths } from 'src/routes/paths';
+
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
@@ -63,7 +65,7 @@ export const _account = [
   },
   {
     label: 'Account settings',
-    href: '#',
+    href: paths.dashboard.settings,
     icon: <Iconify icon="solar:settings-bold-duotone" />,
   },
 ];

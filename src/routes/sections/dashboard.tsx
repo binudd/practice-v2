@@ -26,6 +26,9 @@ const CalendarPage = lazy(() => import('src/pages/dashboard/calendar'));
 // Timesheet
 const TimesheetPage = lazy(() => import('src/pages/dashboard/timesheet'));
 
+// Settings
+const SettingsPage = lazy(() => import('src/pages/dashboard/settings'));
+
 // Users
 const UserListPage = lazy(() => import('src/pages/dashboard/user/list'));
 const UserNewPage = lazy(() => import('src/pages/dashboard/user/new'));
@@ -124,6 +127,7 @@ export const dashboardRoutes = [
           </RoleGuard>
         ),
       },
+      { path: 'settings', element: <SettingsPage /> },
       {
         path: 'users',
         element: (
