@@ -50,5 +50,7 @@ export const _projects = [...Array(8)].map((_, index) => {
     completedTasks: completed,
     priority: PRIORITIES[index % PRIORITIES.length],
     isFavorite: index % 3 === 0,
+    isTemplate: index === 2 || index === 5,
+    isRecurring: index === 1 || index === 4,
   };
 });

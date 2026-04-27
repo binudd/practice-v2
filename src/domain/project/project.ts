@@ -23,6 +23,8 @@ export const ProjectSchema = z.object({
   completedTasks: z.number(),
   priority: ProjectPrioritySchema.default('medium'),
   isFavorite: z.boolean().default(false),
+  isTemplate: z.boolean().default(false),
+  isRecurring: z.boolean().default(false),
 });
 
 export const ProjectListSchema = z.object({

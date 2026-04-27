@@ -47,6 +47,8 @@ export async function createProjectWithBoard(
     description: '',
     priority: 'medium',
     isFavorite: false,
+    isTemplate: false,
+    isRecurring: false,
     ...input,
   };
 

@@ -2,15 +2,19 @@ import type { ViewMode } from 'src/store/ui-preferences-store';
 import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import type { IProject, IProjectStatus } from 'src/types/project';
 
-import { useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 
+import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
+import Tabs from '@mui/material/Tabs';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
+import Grid from '@mui/material/Unstable_Grid2';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
 import ToggleButton from '@mui/material/ToggleButton';
 import { DataGrid, gridClasses } from '@mui/x-data-grid';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -21,6 +25,7 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
+import { varAlpha } from 'src/theme/styles';
 import { useGetProjects } from 'src/actions/project';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { PROJECT_STATUS_OPTIONS } from 'src/_mock/_project';
@@ -41,6 +46,27 @@ import { ProjectCardList } from '../project-card-list';
 
 const SCREEN_KEY = 'project.list';
 
+const MODULE_TABS = [
+  { value: 'active', label: 'Active' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'templates', label: 'Templates' },
+  { value: 'overview', label: 'Overview' },
+  { value: 'recurring', label: 'Recurring' },
+] as const;
+
+type ModuleTab = (typeof MODULE_TABS)[number]['value'];
+
+const MODULE_TAB_SET = new Set<string>(MODULE_TABS.map((t) => t.value));
+
+type ListModuleTab = Exclude<ModuleTab, 'overview'>;
+
+const EMPTY_TITLE: Record<ListModuleTab, string> = {
+  active: 'No active projects',
+  completed: 'No completed projects',
+  templates: 'No templates',
+  recurring: 'No recurring projects',
+};
+
 const statusLabel: Record<IProjectStatus, string> = PROJECT_STATUS_OPTIONS.reduce(
   (acc, option) => ({ ...acc, [option.value]: option.label }),
   {} as Record<IProjectStatus, string>
@@ -52,6 +78,26 @@ const statusColor: Record<IProjectStatus, 'success' | 'warning' | 'info' | 'defa
   completed: 'info',
   archived: 'default',
 };
+
+// ----------------------------------------------------------------------
+
+function OverviewStatCard({ title, value }: { title: string; value: number }) {
+  return (
+    <Card sx={{ p: 2.5, height: 1 }}>
+      <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 0.5 }}>
+        {title}
+      </Typography>
+      <Typography variant="h4">{value}</Typography>
+    </Card>
+  );
+}
+
+function matchesModuleTab(project: IProject, tab: ListModuleTab): boolean {
+  if (tab === 'active') return project.status === 'active' || project.status === 'on-hold';
+  if (tab === 'completed') return project.status === 'completed';
+  if (tab === 'templates') return project.isTemplate;
+  return project.isRecurring;
+}
 
 // ----------------------------------------------------------------------
 
@@ -72,13 +118,22 @@ export function ProjectListView() {
   const setFilter = useFiltersStore((s) => s.setFilter);
 
   const search = (filter.search as string | undefined) ?? '';
-  const statusFilter = ((filter.status as string | undefined) ?? 'all') as IProjectStatus | 'all';
+  const rawModuleTab = filter.moduleTab as string | undefined;
+  const moduleTab: ModuleTab =
+    rawModuleTab && MODULE_TAB_SET.has(rawModuleTab) ? (rawModuleTab as ModuleTab) : 'active';
 
   const handleChangeView = useCallback(
     (event: React.MouseEvent<HTMLElement>, newView: ViewMode | null) => {
       if (newView !== null) setViewMode(SCREEN_KEY, newView);
     },
     [setViewMode]
+  );
+
+  const handleModuleTabChange = useCallback(
+    (_: React.SyntheticEvent, value: ModuleTab) => {
+      setFilter(SCREEN_KEY, { moduleTab: value });
+    },
+    [setFilter]
   );
 
   const handleOpenBoard = useCallback(
@@ -95,19 +150,31 @@ export function ProjectListView() {
     [router]
   );
 
-  const dataFiltered = projects.filter((project) => {
-    const matchesSearch =
-      !search ||
-      project.name.toLowerCase().includes(search.toLowerCase()) ||
-      project.code.toLowerCase().includes(search.toLowerCase()) ||
-      project.ownerName.toLowerCase().includes(search.toLowerCase());
+  const overviewStats = useMemo(() => {
+    const active = projects.filter((p) => p.status === 'active').length;
+    const onHold = projects.filter((p) => p.status === 'on-hold').length;
+    const completed = projects.filter((p) => p.status === 'completed').length;
+    const archived = projects.filter((p) => p.status === 'archived').length;
+    const templates = projects.filter((p) => p.isTemplate).length;
+    const recurring = projects.filter((p) => p.isRecurring).length;
+    return { active, onHold, completed, archived, templates, recurring, total: projects.length };
+  }, [projects]);
 
-    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+  const dataFiltered = useMemo(() => {
+    if (moduleTab === 'overview') return [];
 
-    return matchesSearch && matchesStatus;
-  });
+    return projects.filter((project) => {
+      const matchesSearch =
+        !search ||
+        project.name.toLowerCase().includes(search.toLowerCase()) ||
+        project.code.toLowerCase().includes(search.toLowerCase()) ||
+        project.ownerName.toLowerCase().includes(search.toLowerCase());
 
-  const notFound = !projectsLoading && dataFiltered.length === 0;
+      return matchesSearch && matchesModuleTab(project, moduleTab);
+    });
+  }, [moduleTab, projects, search]);
+
+  const notFound = !projectsLoading && !projectsEmpty && dataFiltered.length === 0;
 
   const columns: GridColDef<IProject>[] = [
     {
@@ -207,22 +274,6 @@ export function ProjectListView() {
         }}
       />
 
-      <TextField
-        select
-        size="small"
-        value={statusFilter}
-        onChange={(e) => setFilter(SCREEN_KEY, { status: e.target.value })}
-        SelectProps={{ native: true }}
-        sx={{ minWidth: 180 }}
-      >
-        <option value="all">All statuses</option>
-        {PROJECT_STATUS_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </TextField>
-
       <ToggleButtonGroup size="small" value={view} exclusive onChange={handleChangeView}>
         <ToggleButton value="list" aria-label="List view">
           <Iconify icon="solar:list-bold" />
@@ -258,6 +309,32 @@ export function ProjectListView() {
 
   const renderGrid = <ProjectCardList projects={dataFiltered} />;
 
+  const renderOverview = (
+    <Grid container spacing={3}>
+      <Grid xs={12} sm={6} md={4}>
+        <OverviewStatCard title="Total projects" value={overviewStats.total} />
+      </Grid>
+      <Grid xs={12} sm={6} md={4}>
+        <OverviewStatCard title="Active" value={overviewStats.active} />
+      </Grid>
+      <Grid xs={12} sm={6} md={4}>
+        <OverviewStatCard title="On hold" value={overviewStats.onHold} />
+      </Grid>
+      <Grid xs={12} sm={6} md={4}>
+        <OverviewStatCard title="Completed" value={overviewStats.completed} />
+      </Grid>
+      <Grid xs={12} sm={6} md={4}>
+        <OverviewStatCard title="Archived" value={overviewStats.archived} />
+      </Grid>
+      <Grid xs={12} sm={6} md={4}>
+        <OverviewStatCard title="Templates" value={overviewStats.templates} />
+      </Grid>
+      <Grid xs={12} sm={6} md={4}>
+        <OverviewStatCard title="Recurring" value={overviewStats.recurring} />
+      </Grid>
+    </Grid>
+  );
+
   return (
     <DashboardContent>
       <CustomBreadcrumbs
@@ -278,17 +355,43 @@ export function ProjectListView() {
             </Button>
           </Can>
         }
-        sx={{ mb: { xs: 3, md: 5 } }}
+        sx={{ mb: { xs: 2, md: 3 } }}
       />
 
-      {renderToolbar}
+      <Tabs
+        value={moduleTab}
+        onChange={handleModuleTabChange}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={{
+          mb: 2.5,
+          boxShadow: (theme) =>
+            `inset 0 -2px 0 0 ${varAlpha(theme.vars.palette.grey['500Channel'], 0.08)}`,
+        }}
+      >
+        {MODULE_TABS.map((t) => (
+          <Tab key={t.value} value={t.value} label={t.label} />
+        ))}
+      </Tabs>
 
-      {projectsEmpty ? (
-        <EmptyContent title="No projects" sx={{ py: 10 }} />
-      ) : notFound ? (
-        <EmptyContent title="No results" sx={{ py: 10 }} />
+      {moduleTab === 'overview' ? (
+        projectsLoading ? (
+          <EmptyContent title="Loading…" sx={{ py: 10 }} />
+        ) : (
+          renderOverview
+        )
       ) : (
-        <>{view === 'list' ? renderList : renderGrid}</>
+        <>
+          {renderToolbar}
+
+          {projectsEmpty ? (
+            <EmptyContent title="No projects" sx={{ py: 10 }} />
+          ) : notFound ? (
+            <EmptyContent title={EMPTY_TITLE[moduleTab]} sx={{ py: 10 }} />
+          ) : (
+            <>{view === 'list' ? renderList : renderGrid}</>
+          )}
+        </>
       )}
     </DashboardContent>
   );
