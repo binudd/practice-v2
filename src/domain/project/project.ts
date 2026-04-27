@@ -4,7 +4,18 @@ import { z } from 'zod';
 
 export const ProjectStatusSchema = z.enum(['active', 'on-hold', 'completed', 'archived']);
 
-export const ProjectPrioritySchema = z.enum(['low', 'medium', 'high']);
+export const ProjectPrioritySchema = z.enum(['low', 'medium', 'high', 'critical']);
+
+export const ProjectBudgetTypeSchema = z.enum(['fixed', 'time_expenses', 'non_billable']);
+
+export const ProjectSettingsFlagsSchema = z.object({
+  hiddenFromClient: z.boolean().default(false),
+  restrictTaskView: z.boolean().default(false),
+  emailNotification: z.boolean().default(false),
+  restrictTimesheetHours: z.boolean().default(false),
+  notification: z.boolean().default(false),
+  enableTimesheetApproval: z.boolean().default(false),
+});
 
 export const ProjectSchema = z.object({
   id: z.string(),
@@ -25,6 +36,18 @@ export const ProjectSchema = z.object({
   isFavorite: z.boolean().default(false),
   isTemplate: z.boolean().default(false),
   isRecurring: z.boolean().default(false),
+  referenceNo: z.string().optional(),
+  templateId: z.string().optional(),
+  projectLeaderId: z.string().optional(),
+  projectLeaderName: z.string().optional(),
+  category: z.string().optional(),
+  group: z.string().optional(),
+  department: z.string().optional(),
+  clientCompanyName: z.string().optional(),
+  budgetHours: z.number().optional(),
+  budgetType: ProjectBudgetTypeSchema.optional(),
+  customFieldKey: z.string().optional(),
+  settings: ProjectSettingsFlagsSchema.optional(),
 });
 
 export const ProjectListSchema = z.object({
@@ -33,6 +56,8 @@ export const ProjectListSchema = z.object({
 
 export type IProjectStatus = z.infer<typeof ProjectStatusSchema>;
 export type IProjectPriority = z.infer<typeof ProjectPrioritySchema>;
+export type IProjectBudgetType = z.infer<typeof ProjectBudgetTypeSchema>;
+export type IProjectSettingsFlags = z.infer<typeof ProjectSettingsFlagsSchema>;
 export type IProject = z.infer<typeof ProjectSchema>;
 
 // ----------------------------------------------------------------------

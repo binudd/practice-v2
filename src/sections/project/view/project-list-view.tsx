@@ -106,7 +106,7 @@ function matchesModuleTab(project: IProject, tab: ListModuleTab): boolean {
   return project.isRecurring;
 }
 
-const PRIORITY_SET = new Set<IProjectPriority>(['low', 'medium', 'high']);
+const PRIORITY_SET = new Set<IProjectPriority>(['low', 'medium', 'high', 'critical']);
 
 function normalizePriorities(raw: unknown): IProjectPriority[] {
   if (!Array.isArray(raw)) return [];

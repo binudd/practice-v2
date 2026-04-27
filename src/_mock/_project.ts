@@ -24,7 +24,7 @@ const STATUSES: Array<'active' | 'on-hold' | 'completed' | 'archived'> = [
   'archived',
 ];
 
-const PRIORITIES = ['low', 'medium', 'high'] as const;
+const PRIORITIES = ['low', 'medium', 'high', 'critical'] as const;
 
 export const _projects = [...Array(8)].map((_, index) => {
   const total = 20 + index * 3;

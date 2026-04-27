@@ -10,6 +10,7 @@ const PRIORITY_ICON: Record<IProjectPriority, string> = {
   low: 'solar:double-alt-arrow-down-bold-duotone',
   medium: 'solar:double-alt-arrow-right-bold-duotone',
   high: 'solar:double-alt-arrow-up-bold-duotone',
+  critical: 'solar:danger-triangle-bold',
 };
 
 type IconProps = {
@@ -25,10 +26,16 @@ export function ProjectPriorityKanbanIcon({ priority, sx }: IconProps) {
         ...(priority === 'low' && { color: 'info.main' }),
         ...(priority === 'medium' && { color: 'warning.main' }),
         ...(priority === 'high' && { color: 'error.main' }),
+        ...(priority === 'critical' && { color: 'text.secondary' }),
         ...sx,
       }}
     />
   );
 }
 
-export const PROJECT_PRIORITY_OPTIONS: IProjectPriority[] = ['low', 'medium', 'high'];
+export const PROJECT_PRIORITY_OPTIONS: IProjectPriority[] = [
+  'low',
+  'medium',
+  'high',
+  'critical',
+];
