@@ -111,7 +111,7 @@ function renderTabPanel(tab: ProjectDetailTabId, project: IProject | undefined) 
     case 'overview':
       return project ? renderOverviewPanel(project) : null;
     case 'kanban':
-      return project ? <KanbanView projectId={project.id} title={project.name} /> : null;
+      return project ? <KanbanView embedded projectId={project.id} title={project.name} /> : null;
     case 'files':
       return project ? <ProjectFilesView projectId={project.id} /> : null;
     case 'discussion':

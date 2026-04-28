@@ -27,6 +27,7 @@ import {
   MeasuringStrategy,
 } from '@dnd-kit/core';
 
+import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 
 import { hideScrollY } from 'src/theme/styles';
@@ -59,9 +60,14 @@ const cssVars = {
 type Props = {
   projectId?: string;
   title?: string;
+  /**
+   * Omit inner DashboardContent so parent shell (e.g. project detail) owns padding — avoids double inset.
+   * Board markup, cssVars, and scroll height behavior are unchanged vs the full-page variant.
+   */
+  embedded?: boolean;
 };
 
-export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {}) {
+export function KanbanView({ projectId, title: _title = 'My Work', embedded = false }: Props = {}) {
   const { board, boardLoading, boardEmpty } = useGetBoard(projectId);
 
   const recentlyMovedToNewContainer = useRef(false);
@@ -336,21 +342,33 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
     </DndContext>
   );
 
+  const body = boardLoading ? renderLoading : <>{boardEmpty ? renderEmpty : renderList}</>;
+
+  const shellSx = {
+    ...cssVars,
+    flex: '1 1 0',
+    minHeight: 0,
+    display: 'flex',
+    overflow: 'hidden',
+    flexDirection: 'column',
+    width: 1,
+  };
+
+  if (embedded) {
+    return <Box sx={shellSx}>{body}</Box>;
+  }
+
   return (
     <DashboardContent
       maxWidth={false}
       sx={{
-        ...cssVars,
+        ...shellSx,
         pb: 0,
         pl: { sm: 3 },
         pr: { sm: 0 },
-        flex: '1 1 0',
-        display: 'flex',
-        overflow: 'hidden',
-        flexDirection: 'column',
       }}
     >
-      {boardLoading ? renderLoading : <>{boardEmpty ? renderEmpty : renderList}</>}
+      {body}
     </DashboardContent>
   );
 }
