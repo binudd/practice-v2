@@ -28,8 +28,6 @@ import {
 } from '@dnd-kit/core';
 
 import Stack from '@mui/material/Stack';
-import Switch from '@mui/material/Switch';
-import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { hideScrollY } from 'src/theme/styles';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -65,8 +63,6 @@ type Props = {
 
 export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {}) {
   const { board, boardLoading, boardEmpty } = useGetBoard(projectId);
-
-  const [columnFixed, setColumnFixed] = useState(true);
 
   const recentlyMovedToNewContainer = useRef(false);
 
@@ -289,19 +285,18 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
         <Stack
           sx={{
             pb: 3,
-            display: 'unset',
-            ...(columnFixed && { minHeight: 0, display: 'flex', flex: '1 1 auto' }),
+            minHeight: 0,
+            display: 'flex',
+            flex: '1 1 auto',
           }}
         >
           <Stack
             direction="row"
             sx={{
               gap: 'var(--column-gap)',
-              ...(columnFixed && {
-                minHeight: 0,
-                flex: '1 1 auto',
-                [`& .${kanbanClasses.columnList}`]: { ...hideScrollY, flex: '1 1 auto' },
-              }),
+              minHeight: 0,
+              flex: '1 1 auto',
+              [`& .${kanbanClasses.columnList}`]: { ...hideScrollY, flex: '1 1 auto' },
             }}
           >
             <SortableContext
@@ -355,27 +350,6 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
         flexDirection: 'column',
       }}
     >
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="flex-end"
-        sx={{ pr: { sm: 3 }, mb: { xs: 3, md: 5 } }}
-      >
-        <FormControlLabel
-          label="Column fixed"
-          labelPlacement="start"
-          control={
-            <Switch
-              checked={columnFixed}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                setColumnFixed(event.target.checked);
-              }}
-              inputProps={{ id: 'column-fixed-switch' }}
-            />
-          }
-        />
-      </Stack>
-
       {boardLoading ? renderLoading : <>{boardEmpty ? renderEmpty : renderList}</>}
     </DashboardContent>
   );
