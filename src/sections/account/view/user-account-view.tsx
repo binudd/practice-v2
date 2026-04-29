@@ -4,13 +4,11 @@ import { useEffect, useCallback, type SyntheticEvent } from 'react';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 
-import { paths } from 'src/routes/paths';
-
 import { DashboardContent } from 'src/layouts/dashboard';
 import { _userAbout, _userPlans, _userPayment, _userInvoices, _userAddressBook } from 'src/_mock';
 
 import { Iconify } from 'src/components/iconify';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { AccountGeneral } from '../account-general';
 import { AccountBilling } from '../account-billing';
@@ -77,16 +75,10 @@ export function AccountView() {
     [setSearchParams]
   );
 
+  useSetDashboardBreadcrumbs([breadcrumbHomeLink, { name: 'My account' }], undefined, []);
+
   return (
     <DashboardContent>
-      <CustomBreadcrumbs
-        links={[
-          { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'My account' },
-        ]}
-        sx={{ mb: { xs: 3, md: 5 } }}
-      />
-
       <Tabs value={currentTab} onChange={handleTabChange} sx={{ mb: { xs: 3, md: 5 } }}>
         {TABS.map((tab) => (
           <Tab key={tab.value} label={tab.label} icon={tab.icon} value={tab.value} />

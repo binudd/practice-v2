@@ -10,6 +10,10 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { useGetContacts, useGetConversation, useGetConversations } from 'src/actions/chat';
 
 import { EmptyContent } from 'src/components/empty-content';
+import {
+  breadcrumbHomeLink,
+  useSetDashboardBreadcrumbs,
+} from 'src/components/dashboard-breadcrumbs';
 
 import { useMockedUser } from 'src/auth/hooks';
 
@@ -62,6 +66,8 @@ export function ChatView() {
   const handleAddRecipients = useCallback((selected: IChatParticipant[]) => {
     setRecipients(selected);
   }, []);
+
+  useSetDashboardBreadcrumbs([breadcrumbHomeLink, { name: 'Chat' }], undefined, []);
 
   return (
     <DashboardContent

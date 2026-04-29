@@ -34,7 +34,7 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { ConfirmDialog } from 'src/components/custom-dialog';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 import {
   useTable,
   emptyRows,
@@ -199,30 +199,28 @@ export function InvoiceListView() {
     [filters, table]
   );
 
+  useSetDashboardBreadcrumbs(
+    [
+      breadcrumbHomeLink,
+      { name: 'Invoice', href: paths.dashboard.invoice.root },
+      { name: 'List' },
+    ],
+    <Can perm="invoice:manage">
+      <Button
+        component={RouterLink}
+        href={paths.dashboard.invoice.new}
+        variant="contained"
+        startIcon={<Iconify icon="mingcute:add-line" />}
+      >
+        New invoice
+      </Button>
+    </Can>,
+    []
+  );
+
   return (
     <>
       <DashboardContent>
-        <CustomBreadcrumbs
-          links={[
-            { name: 'Dashboard', href: paths.dashboard.root },
-            { name: 'Invoice', href: paths.dashboard.invoice.root },
-            { name: 'List' },
-          ]}
-          action={
-            <Can perm="invoice:manage">
-              <Button
-                component={RouterLink}
-                href={paths.dashboard.invoice.new}
-                variant="contained"
-                startIcon={<Iconify icon="mingcute:add-line" />}
-              >
-                New invoice
-              </Button>
-            </Can>
-          }
-          sx={{ mb: { xs: 3, md: 5 } }}
-        />
-
         <Card sx={{ mb: { xs: 3, md: 5 } }}>
           <Scrollbar sx={{ minHeight: 108 }}>
             <Stack

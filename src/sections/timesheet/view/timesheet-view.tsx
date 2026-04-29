@@ -6,14 +6,12 @@ import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
-import { paths } from 'src/routes/paths';
-
 import { DashboardContent } from 'src/layouts/dashboard';
 import { deleteEntry, useAllTimesheetEntries } from 'src/actions/timesheet';
 import { toIsoDay, startOfWeek, CURRENT_USER_ID } from 'src/_mock/_timesheet';
 
 import { toast } from 'src/components/snackbar';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { useHasPermission } from 'src/auth/hooks/use-role';
 import { useAuthContext } from 'src/auth/hooks/use-auth-context';
@@ -175,13 +173,10 @@ export function TimesheetView() {
     });
   }, []);
 
+  useSetDashboardBreadcrumbs([breadcrumbHomeLink, { name: 'Timesheet' }], undefined, []);
+
   return (
     <DashboardContent>
-      <CustomBreadcrumbs
-        links={[{ name: 'Dashboard', href: paths.dashboard.root }, { name: 'Timesheet' }]}
-        sx={{ mb: { xs: 3, md: 5 } }}
-      />
-
       <Card sx={{ p: { xs: 2, md: 3 } }}>
         <Stack spacing={3}>
           <TimesheetToolbar

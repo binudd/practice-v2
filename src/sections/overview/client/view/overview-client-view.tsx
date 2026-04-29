@@ -17,6 +17,7 @@ import { SeoIllustration } from 'src/assets/illustrations';
 
 import { Label } from 'src/components/label';
 import { EmptyContent } from 'src/components/empty-content';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { AppWelcome } from 'src/sections/overview/app/app-welcome';
 import { AppNewInvoice } from 'src/sections/overview/app/app-new-invoice';
@@ -29,6 +30,8 @@ export function OverviewClientView() {
   const { user } = useMockedUser();
 
   const { projects } = useGetProjects({ scope: 'mine' });
+
+  useSetDashboardBreadcrumbs([breadcrumbHomeLink, { name: 'Overview' }], undefined, []);
 
   const renderProjects = (
     <Card>

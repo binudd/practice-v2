@@ -24,7 +24,7 @@ import { ProjectPolicy } from 'src/domain/project/project-policy';
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { ProjectTimeView } from 'src/sections/project/time';
 import { ProjectChatView } from 'src/sections/project/chat';
@@ -177,6 +177,29 @@ export function ProjectDetailsView({ id }: Props) {
     );
   };
 
+  useSetDashboardBreadcrumbs(
+    [
+      breadcrumbHomeLink,
+      { name: 'Projects', href: paths.dashboard.project.root },
+      {
+        name: projectNotFound ? 'Not found' : (project?.name ?? (projectLoading ? 'Loading…' : '')),
+      },
+    ],
+    project && !projectNotFound ? (
+      <Can policy={ProjectPolicy.canEdit} subject={project}>
+        <Button
+          component={RouterLink}
+          href={paths.dashboard.project.edit(project.id)}
+          variant="contained"
+          startIcon={<Iconify icon="solar:pen-bold" />}
+        >
+          Edit
+        </Button>
+      </Can>
+    ) : undefined,
+    [project, projectLoading, projectNotFound]
+  );
+
   if (projectNotFound) {
     return (
       <DashboardContent>
@@ -206,29 +229,6 @@ export function ProjectDetailsView({ id }: Props) {
         flexDirection: 'column',
       }}
     >
-      <CustomBreadcrumbs
-        links={[
-          { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Projects', href: paths.dashboard.project.root },
-          { name: project?.name ?? '' },
-        ]}
-        action={
-          project && (
-            <Can policy={ProjectPolicy.canEdit} subject={project}>
-              <Button
-                component={RouterLink}
-                href={paths.dashboard.project.edit(project.id)}
-                variant="contained"
-                startIcon={<Iconify icon="solar:pen-bold" />}
-              >
-                Edit
-              </Button>
-            </Can>
-          )
-        }
-        sx={{ mb: { xs: 2, md: 3 } }}
-      />
-
       <Tabs
         value={tab}
         onChange={handleTabChange}

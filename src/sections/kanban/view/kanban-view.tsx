@@ -35,6 +35,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { moveTask, moveColumn, useGetBoard } from 'src/actions/kanban';
 
 import { EmptyContent } from 'src/components/empty-content';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { kanbanClasses } from '../classes';
 import { coordinateGetter } from '../utils';
@@ -69,6 +70,13 @@ type Props = {
 
 export function KanbanView({ projectId, title: _title = 'My Work', embedded = false }: Props = {}) {
   const { board, boardLoading, boardEmpty } = useGetBoard(projectId);
+
+  useSetDashboardBreadcrumbs(
+    [breadcrumbHomeLink, { name: 'My Work' }],
+    undefined,
+    [embedded, projectId],
+    { skip: embedded || Boolean(projectId) }
+  );
 
   const recentlyMovedToNewContainer = useRef(false);
 

@@ -9,7 +9,6 @@ import timelinePlugin from '@fullcalendar/timeline';
 import interactionPlugin from '@fullcalendar/interaction';
 
 import Card from '@mui/material/Card';
-import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import { useTheme } from '@mui/material/styles';
@@ -25,6 +24,10 @@ import { CALENDAR_COLOR_OPTIONS } from 'src/_mock/_calendar';
 import { updateEvent, useGetEvents } from 'src/actions/calendar';
 
 import { Iconify } from 'src/components/iconify';
+import {
+  breadcrumbHomeLink,
+  useSetDashboardBreadcrumbs,
+} from 'src/components/dashboard-breadcrumbs';
 
 import { StyledCalendar } from '../styles';
 import { useEvent } from '../hooks/use-event';
@@ -83,6 +86,18 @@ export function CalendarView() {
     onInitialView();
   }, [onInitialView]);
 
+  useSetDashboardBreadcrumbs(
+    [breadcrumbHomeLink, { name: 'Calendar' }],
+    <Button
+      variant="contained"
+      startIcon={<Iconify icon="mingcute:add-line" />}
+      onClick={onOpenForm}
+    >
+      New event
+    </Button>,
+    [onOpenForm]
+  );
+
   const canReset =
     filters.state.colors.length > 0 || (!!filters.state.startDate && !!filters.state.endDate);
 
@@ -101,21 +116,6 @@ export function CalendarView() {
   return (
     <>
       <DashboardContent sx={{ ...flexProps }}>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="flex-end"
-          sx={{ mb: { xs: 3, md: 5 } }}
-        >
-          <Button
-            variant="contained"
-            startIcon={<Iconify icon="mingcute:add-line" />}
-            onClick={onOpenForm}
-          >
-            New event
-          </Button>
-        </Stack>
-
         {canReset && renderResults}
 
         <Card sx={{ ...flexProps, minHeight: '50vh' }}>

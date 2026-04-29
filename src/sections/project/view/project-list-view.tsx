@@ -39,7 +39,7 @@ import { useFiltersStore, selectScreenFilter } from 'src/store/filters-store';
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { Can } from 'src/auth/guard';
 import { useCurrentRole } from 'src/auth/hooks';
@@ -249,6 +249,25 @@ export function ProjectListView() {
 
   const notFound = !projectsLoading && !projectsEmpty && dataFiltered.length === 0;
 
+  useSetDashboardBreadcrumbs(
+    [
+      breadcrumbHomeLink,
+      { name: 'Projects', href: paths.dashboard.project.root },
+      { name: 'List' },
+    ],
+    <Can perm="project:create">
+      <Button
+        component={RouterLink}
+        href={paths.dashboard.project.new}
+        variant="contained"
+        startIcon={<Iconify icon="mingcute:add-line" />}
+      >
+        New project
+      </Button>
+    </Can>,
+    []
+  );
+
   const columns: GridColDef<IProject>[] = [
     {
       field: 'code',
@@ -378,26 +397,6 @@ export function ProjectListView() {
   return (
     <>
       <DashboardContent>
-        <CustomBreadcrumbs
-          links={[
-            { name: 'Dashboard', href: paths.dashboard.root },
-            { name: 'Projects', href: paths.dashboard.project.root },
-            { name: 'List' },
-          ]}
-          action={
-            <Can perm="project:create">
-              <Button
-                component={RouterLink}
-                href={paths.dashboard.project.new}
-                variant="contained"
-                startIcon={<Iconify icon="mingcute:add-line" />}
-              >
-                New project
-              </Button>
-            </Can>
-          }
-          sx={{ mb: { xs: 2, md: 3 } }}
-        />
 
         {canReset && moduleTab !== 'overview' && (
           <ProjectListFiltersResult

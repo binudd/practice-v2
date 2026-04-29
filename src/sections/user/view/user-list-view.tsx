@@ -28,7 +28,7 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { ConfirmDialog } from 'src/components/custom-dialog';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 import {
   useTable,
   emptyRows,
@@ -125,27 +125,26 @@ export function UserListView() {
     [filters, table]
   );
 
+  useSetDashboardBreadcrumbs(
+    [
+      breadcrumbHomeLink,
+      { name: 'User', href: paths.dashboard.user.root },
+      { name: 'List' },
+    ],
+    <Button
+      component={RouterLink}
+      href={paths.dashboard.user.new}
+      variant="contained"
+      startIcon={<Iconify icon="mingcute:add-line" />}
+    >
+      New user
+    </Button>,
+    []
+  );
+
   return (
     <>
       <DashboardContent>
-        <CustomBreadcrumbs
-          links={[
-            { name: 'Dashboard', href: paths.dashboard.root },
-            { name: 'User', href: paths.dashboard.user.root },
-            { name: 'List' },
-          ]}
-          action={
-            <Button
-              component={RouterLink}
-              href={paths.dashboard.user.new}
-              variant="contained"
-              startIcon={<Iconify icon="mingcute:add-line" />}
-            >
-              New user
-            </Button>
-          }
-          sx={{ mb: { xs: 3, md: 5 } }}
-        />
 
         <Card>
           <Tabs

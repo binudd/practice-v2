@@ -5,15 +5,13 @@ import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
 import Tabs from '@mui/material/Tabs';
 
-import { paths } from 'src/routes/paths';
-
 import { useTabs } from 'src/hooks/use-tabs';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { _userAbout, _userFeeds, _userFriends, _userGallery, _userFollowers } from 'src/_mock';
 
 import { Iconify } from 'src/components/iconify';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { useMockedUser } from 'src/auth/hooks';
 
@@ -53,16 +51,18 @@ export function UserProfileView() {
     setSearchFriends(event.target.value);
   }, []);
 
+  useSetDashboardBreadcrumbs(
+    [
+      breadcrumbHomeLink,
+      { name: 'Profile' },
+      { name: user?.displayName ?? '…' },
+    ],
+    undefined,
+    [user?.displayName]
+  );
+
   return (
     <DashboardContent>
-      <CustomBreadcrumbs
-        links={[
-          { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Profile' },
-          { name: user?.displayName ?? '…' },
-        ]}
-        sx={{ mb: { xs: 3, md: 5 } }}
-      />
 
       <Card sx={{ mb: 3, height: 290 }}>
         <ProfileCover
