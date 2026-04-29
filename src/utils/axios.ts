@@ -8,6 +8,17 @@ import { CONFIG } from 'src/config-global';
 
 const axiosInstance = axios.create({ baseURL: CONFIG.site.serverUrl });
 
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const accessToken = sessionStorage.getItem('jwt_access_token');
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => Promise.reject((error.response && error.response.data) || 'Something went wrong!')
@@ -38,7 +49,7 @@ export const endpoints = {
   calendar: '/api/calendar',
   auth: {
     me: '/api/auth/me',
-    signIn: '/api/auth/sign-in',
+    signIn: '/api/Users/LoginModel',
     signUp: '/api/auth/sign-up',
   },
   mail: {
@@ -60,6 +71,10 @@ export const endpoints = {
   project: '/api/project',
   timesheet: '/api/timesheet',
   permissionSettings: {
-    menuList: '/api/permission-settings/menus',
+    menuList: '/api/Menu/GetListMenu',
+    roleList: '/api/Role/GetListRole',
+    getRole: '/api/Role/Get',
+    saveRole: '/api/UserRole/Save',
+    deleteRole: '/api/UserRole/Delete',
   },
 };

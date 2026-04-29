@@ -11,3 +11,8 @@ export { notify, useNotificationsStore } from './notifications-store';
 
 export type { ViewMode, UIPreferencesState } from './ui-preferences-store';
 export type { AppNotification, NotificationKind, NotificationsState } from './notifications-store';
+export { useUserStore } from './user-store';
+export type { UserState } from './user-store';
+
+export { useMenuStore } from './menu-store';
+export type { MenuState, Menu } from './menu-store';

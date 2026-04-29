@@ -17,6 +17,7 @@ import { bulletColor } from 'src/components/nav-section';
 import { useSettingsContext } from 'src/components/settings';
 
 import { useCurrentRole } from 'src/auth/hooks';
+import { useUserStore } from 'src/store/user-store';
 
 import { Main } from './main';
 import { NavMobile } from './nav-mobile';
@@ -50,7 +51,37 @@ export function DashboardLayout({ sx, children, data }: DashboardLayoutProps) {
 
   const layoutQuery: Breakpoint = 'lg';
 
-  const navData = data?.nav ?? dashboardNavData;
+  const user = useUserStore((s: any) => s.user);
+  const permissions = user?.roles || [];
+
+  const navData = useMemo(() => {
+    const rawData = data?.nav ?? dashboardNavData;
+
+    return rawData
+      .map((group) => ({
+        ...group,
+        items: group.items
+          .filter((item) => {
+            if (!item.menuName) return true;
+            const perm = permissions.find((p: any) => p.menuName === item.menuName);
+            return perm ? perm.canView : false;
+          })
+          .map((item) => {
+            if (item.children) {
+              return {
+                ...item,
+                children: item.children.filter((child: any) => {
+                  if (!child.menuName) return true;
+                  const perm = permissions.find((p: any) => p.menuName === child.menuName);
+                  return perm ? perm.canView : false;
+                }),
+              };
+            }
+            return item;
+          }),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [user, data?.nav, permissions]);
 
   const currentRole = useCurrentRole();
 
