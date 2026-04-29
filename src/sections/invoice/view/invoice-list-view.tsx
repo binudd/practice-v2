@@ -34,7 +34,11 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { ConfirmDialog } from 'src/components/custom-dialog';
-import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
+import {
+  breadcrumbHomeLink,
+  useSetDashboardBreadcrumbs,
+  DashboardToolbarPrimaryButton,
+} from 'src/components/dashboard-breadcrumbs';
 import {
   useTable,
   emptyRows,
@@ -206,14 +210,13 @@ export function InvoiceListView() {
       { name: 'List' },
     ],
     <Can perm="invoice:manage">
-      <Button
+      <DashboardToolbarPrimaryButton
         component={RouterLink}
         href={paths.dashboard.invoice.new}
-        variant="contained"
         startIcon={<Iconify icon="mingcute:add-line" />}
       >
         New invoice
-      </Button>
+      </DashboardToolbarPrimaryButton>
     </Can>,
     []
   );

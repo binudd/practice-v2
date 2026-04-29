@@ -11,7 +11,6 @@ import Tabs from '@mui/material/Tabs';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Badge from '@mui/material/Badge';
-import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Grid from '@mui/material/Unstable_Grid2';
 import IconButton from '@mui/material/IconButton';
@@ -39,7 +38,7 @@ import { useFiltersStore, selectScreenFilter } from 'src/store/filters-store';
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
-import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs, DashboardToolbarPrimaryButton } from 'src/components/dashboard-breadcrumbs';
 
 import { Can } from 'src/auth/guard';
 import { useCurrentRole } from 'src/auth/hooks';
@@ -256,14 +255,13 @@ export function ProjectListView() {
       { name: 'List' },
     ],
     <Can perm="project:create">
-      <Button
+      <DashboardToolbarPrimaryButton
         component={RouterLink}
         href={paths.dashboard.project.new}
-        variant="contained"
         startIcon={<Iconify icon="mingcute:add-line" />}
       >
         New project
-      </Button>
+      </DashboardToolbarPrimaryButton>
     </Can>,
     []
   );

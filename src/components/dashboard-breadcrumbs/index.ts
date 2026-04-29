@@ -1,5 +1,8 @@
 export { breadcrumbHomeLink } from './constants';
 
+export { DashboardToolbarPrimaryButton } from './dashboard-toolbar-primary-button';
+export type { DashboardToolbarPrimaryButtonProps } from './dashboard-toolbar-primary-button';
+
 export {
   DashboardToolbarBreadcrumbsHost,
   DashboardToolbarPageActionsHost,

@@ -21,9 +21,6 @@ type TimesheetToolbarProps = {
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
-  onAddTimeLog: () => void;
-  canAdd: boolean;
-  loading?: boolean;
 };
 
 export function TimesheetToolbar({
@@ -35,9 +32,6 @@ export function TimesheetToolbar({
   onPrev,
   onNext,
   onToday,
-  onAddTimeLog,
-  canAdd,
-  loading,
 }: TimesheetToolbarProps) {
   const rangeLabel =
     weekDays.length > 0
@@ -83,18 +77,6 @@ export function TimesheetToolbar({
           onChange={(v) => v && onSelectedDate(v.toDate())}
           slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
         />
-
-        {canAdd && (
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Iconify icon="mingcute:add-line" />}
-            onClick={onAddTimeLog}
-            disabled={loading}
-          >
-            Add time log
-          </Button>
-        )}
       </Stack>
     </Stack>
   );

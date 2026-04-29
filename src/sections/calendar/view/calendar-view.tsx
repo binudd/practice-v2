@@ -9,7 +9,6 @@ import timelinePlugin from '@fullcalendar/timeline';
 import interactionPlugin from '@fullcalendar/interaction';
 
 import Card from '@mui/material/Card';
-import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import { useTheme } from '@mui/material/styles';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -27,6 +26,7 @@ import { Iconify } from 'src/components/iconify';
 import {
   breadcrumbHomeLink,
   useSetDashboardBreadcrumbs,
+  DashboardToolbarPrimaryButton,
 } from 'src/components/dashboard-breadcrumbs';
 
 import { StyledCalendar } from '../styles';
@@ -88,13 +88,12 @@ export function CalendarView() {
 
   useSetDashboardBreadcrumbs(
     [breadcrumbHomeLink, { name: 'Calendar' }],
-    <Button
-      variant="contained"
+    <DashboardToolbarPrimaryButton
       startIcon={<Iconify icon="mingcute:add-line" />}
       onClick={onOpenForm}
     >
       New event
-    </Button>,
+    </DashboardToolbarPrimaryButton>,
     [onOpenForm]
   );
 

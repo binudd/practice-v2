@@ -24,7 +24,7 @@ import { ProjectPolicy } from 'src/domain/project/project-policy';
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
-import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs, DashboardToolbarPrimaryButton } from 'src/components/dashboard-breadcrumbs';
 
 import { ProjectTimeView } from 'src/sections/project/time';
 import { ProjectChatView } from 'src/sections/project/chat';
@@ -187,14 +187,13 @@ export function ProjectDetailsView({ id }: Props) {
     ],
     project && !projectNotFound ? (
       <Can policy={ProjectPolicy.canEdit} subject={project}>
-        <Button
+        <DashboardToolbarPrimaryButton
           component={RouterLink}
           href={paths.dashboard.project.edit(project.id)}
-          variant="contained"
           startIcon={<Iconify icon="solar:pen-bold" />}
         >
           Edit
-        </Button>
+        </DashboardToolbarPrimaryButton>
       </Can>
     ) : undefined,
     [project, projectLoading, projectNotFound]

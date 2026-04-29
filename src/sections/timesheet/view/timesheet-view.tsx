@@ -11,8 +11,14 @@ import { deleteEntry, useAllTimesheetEntries } from 'src/actions/timesheet';
 import { toIsoDay, startOfWeek, CURRENT_USER_ID } from 'src/_mock/_timesheet';
 
 import { toast } from 'src/components/snackbar';
-import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
+import { Iconify } from 'src/components/iconify';
+import {
+  breadcrumbHomeLink,
+  useSetDashboardBreadcrumbs,
+  DashboardToolbarPrimaryButton,
+} from 'src/components/dashboard-breadcrumbs';
 
+import { Can } from 'src/auth/guard';
 import { useHasPermission } from 'src/auth/hooks/use-role';
 import { useAuthContext } from 'src/auth/hooks/use-auth-context';
 
@@ -27,7 +33,6 @@ export function TimesheetView() {
   const { user } = useAuthContext();
   const viewerId = user?.id ?? CURRENT_USER_ID;
   const canViewAll = useHasPermission('timesheet:view-all');
-  const canLogTime = useHasPermission('timesheet:enter');
 
   const [viewMode, setViewMode] = useState<'week' | 'day'>('week');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -173,7 +178,19 @@ export function TimesheetView() {
     });
   }, []);
 
-  useSetDashboardBreadcrumbs([breadcrumbHomeLink, { name: 'Timesheet' }], undefined, []);
+  useSetDashboardBreadcrumbs(
+    [breadcrumbHomeLink, { name: 'Timesheet' }],
+    <Can perm="timesheet:enter">
+      <DashboardToolbarPrimaryButton
+        startIcon={<Iconify icon="mingcute:add-line" />}
+        onClick={openAdd}
+        disabled={allEntriesLoading}
+      >
+        Add time log
+      </DashboardToolbarPrimaryButton>
+    </Can>,
+    [openAdd, allEntriesLoading]
+  );
 
   return (
     <DashboardContent>
@@ -188,9 +205,6 @@ export function TimesheetView() {
             onPrev={() => shiftRange(-1)}
             onNext={() => shiftRange(1)}
             onToday={() => setSelectedDate(new Date())}
-            onAddTimeLog={openAdd}
-            canAdd={canLogTime}
-            loading={allEntriesLoading}
           />
 
           <TimesheetTable

@@ -28,7 +28,11 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { ConfirmDialog } from 'src/components/custom-dialog';
-import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
+import {
+  breadcrumbHomeLink,
+  useSetDashboardBreadcrumbs,
+  DashboardToolbarPrimaryButton,
+} from 'src/components/dashboard-breadcrumbs';
 import {
   useTable,
   emptyRows,
@@ -131,14 +135,13 @@ export function UserListView() {
       { name: 'User', href: paths.dashboard.user.root },
       { name: 'List' },
     ],
-    <Button
+    <DashboardToolbarPrimaryButton
       component={RouterLink}
       href={paths.dashboard.user.new}
-      variant="contained"
       startIcon={<Iconify icon="mingcute:add-line" />}
     >
       New user
-    </Button>,
+    </DashboardToolbarPrimaryButton>,
     []
   );
 

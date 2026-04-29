@@ -24,6 +24,7 @@ import { useTable, rowInPage, getComparator } from 'src/components/table';
 import {
   breadcrumbHomeLink,
   useSetDashboardBreadcrumbs,
+  DashboardToolbarPrimaryButton,
 } from 'src/components/dashboard-breadcrumbs';
 
 import { FileManagerTable } from '../file-manager-table';
@@ -109,13 +110,12 @@ export function FileManagerView() {
 
   useSetDashboardBreadcrumbs(
     [breadcrumbHomeLink, { name: 'File manager' }],
-    <Button
-      variant="contained"
+    <DashboardToolbarPrimaryButton
       startIcon={<Iconify icon="eva:cloud-upload-fill" />}
       onClick={upload.onTrue}
     >
       Upload
-    </Button>,
+    </DashboardToolbarPrimaryButton>,
     [upload.onTrue]
   );
 
