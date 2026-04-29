@@ -16,6 +16,7 @@ export type WeekDraftEntry = {
   projectId: string;
   date: string;
   hours: number;
+  billable?: boolean;
   note?: string;
   taskId?: string;
   taskName?: string;
@@ -49,6 +50,7 @@ export async function submitWeek(
           projectId: row.projectId,
           date: iso,
           hours: row.hours,
+          billable: row.billable !== false,
           note: row.note,
           taskId: row.taskId,
           taskName: row.taskName,

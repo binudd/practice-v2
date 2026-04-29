@@ -250,14 +250,21 @@ function emptyFormValues(defaultUserId: string): ProjectCreateFormValues {
 export type ProjectFormProps = {
   mode?: 'create' | 'edit';
   current?: IProject;
+  /** When creating from templates/recurring hubs (`?preset=` on /projects/new). */
+  creationPreset?: 'template' | 'recurring';
 };
 
-export function ProjectCreateForm({ mode = 'create', current }: ProjectFormProps) {
+export function ProjectCreateForm({ mode = 'create', current, creationPreset }: ProjectFormProps) {
   const router = useRouter();
   const { user } = useAuthContext();
 
   const defaultUserId = user?.id ?? USER_OPTIONS[0]?.value ?? '';
 
+  const browseAfterSaveHref =
+    mode === 'edit' ? paths.dashboard.project.list
+    : creationPreset === 'template' ? paths.dashboard.project.templates.root
+    : creationPreset === 'recurring' ? paths.dashboard.project.recurringProjects.root
+    : paths.dashboard.project.list;
   const methods = useForm<ProjectCreateFormValues>({
     resolver: zodResolver(ProjectCreateFormSchema),
     defaultValues:
@@ -299,7 +306,7 @@ export function ProjectCreateForm({ mode = 'create', current }: ProjectFormProps
       ownerName: userNameById(data.ownerId),
       description: data.description.trim() || undefined,
       priority: data.priority,
-      isTemplate: Boolean(data.templateId),
+      isTemplate: Boolean(creationPreset === 'template' || data.templateId),
       referenceNo: data.referenceNo.trim() || undefined,
       templateId: data.templateId || undefined,
       projectLeaderId: data.projectLeaderId,
@@ -334,13 +341,13 @@ export function ProjectCreateForm({ mode = 'create', current }: ProjectFormProps
       totalTasks: 0,
       completedTasks: 0,
       isFavorite: false,
-      isRecurring: false,
+      isRecurring: Boolean(creationPreset === 'recurring'),
     };
 
     try {
       const result = await createProjectWithBoard(project);
       if (result.ok) {
-        router.push(paths.dashboard.project.list);
+        router.push(browseAfterSaveHref);
       }
     } catch (error) {
       console.error(error);
@@ -348,7 +355,15 @@ export function ProjectCreateForm({ mode = 'create', current }: ProjectFormProps
     }
   });
 
-  const heading = mode === 'edit' ? 'Edit project' : 'Create project';
+  const heading =
+    mode === 'edit'
+      ? 'Edit project'
+      : creationPreset === 'template'
+        ? 'New template'
+        : creationPreset === 'recurring'
+          ? 'New recurring project'
+          : 'Create project';
+
   const submitLabel = mode === 'edit' ? 'Save changes' : 'Create project';
 
   return (
@@ -363,7 +378,7 @@ export function ProjectCreateForm({ mode = 'create', current }: ProjectFormProps
           title={heading}
           titleTypographyProps={{ variant: 'h6' }}
           action={
-            <IconButton onClick={() => router.push(paths.dashboard.project.list)} aria-label="Close">
+            <IconButton onClick={() => router.push(browseAfterSaveHref)} aria-label="Close">
               <Iconify icon="mingcute:close-line" />
             </IconButton>
           }
@@ -627,7 +642,7 @@ export function ProjectCreateForm({ mode = 'create', current }: ProjectFormProps
             borderTop: (theme) => `solid 1px ${theme.vars.palette.divider}`,
           }}
         >
-          <Button variant="outlined" onClick={() => router.push(paths.dashboard.project.list)}>
+          <Button variant="outlined" onClick={() => router.push(browseAfterSaveHref)}>
             Cancel
           </Button>
           <LoadingButton type="submit" variant="contained" loading={isSubmitting} size="large">

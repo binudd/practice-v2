@@ -2,8 +2,8 @@ import type { ITimesheetEntry, ITimesheetTaskRowModel } from 'src/types/timeshee
 
 import { useMemo, useState, useCallback } from 'react';
 
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -22,10 +22,12 @@ import { Can } from 'src/auth/guard';
 import { useHasPermission } from 'src/auth/hooks/use-role';
 import { useAuthContext } from 'src/auth/hooks/use-auth-context';
 
-import { LogTimeDrawer } from '../log-time-drawer';
+import { LogTimeDialog } from '../log-time-dialog';
 import { TimesheetTable } from '../components/timesheet-table';
 import { TimesheetToolbar } from '../components/timesheet-toolbar';
 import { useManagerMemberIds } from '../hooks/use-manager-member-ids';
+
+const flexColumn = { flex: '1 1 auto' as const, display: 'flex' as const, flexDirection: 'column' as const };
 
 // ----------------------------------------------------------------------
 
@@ -38,8 +40,8 @@ export function TimesheetView() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [expandedByUser, setExpandedByUser] = useState<Record<string, boolean>>({});
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerContext, setDrawerContext] = useState<{
+  const [logOpen, setLogOpen] = useState(false);
+  const [logContext, setLogContext] = useState<{
     targetUserId: string;
     editing: ITimesheetEntry | null;
     defaultDate?: string;
@@ -106,8 +108,8 @@ export function TimesheetView() {
   );
 
   const historyEntries = useMemo(
-    () => allEntries.filter((e) => e.userId === drawerContext.targetUserId),
-    [allEntries, drawerContext.targetUserId]
+    () => allEntries.filter((e) => e.userId === logContext.targetUserId),
+    [allEntries, logContext.targetUserId]
   );
 
   const shiftRange = (dir: -1 | 1) => {
@@ -122,12 +124,12 @@ export function TimesheetView() {
   );
 
   const openAdd = useCallback(() => {
-    setDrawerContext({
+    setLogContext({
       targetUserId: addTargetUserId,
       editing: null,
       defaultDate: weekDays[0],
     });
-    setDrawerOpen(true);
+    setLogOpen(true);
   }, [addTargetUserId, weekDays]);
 
   const openTaskCell = useCallback(
@@ -140,14 +142,14 @@ export function TimesheetView() {
           (e.taskId ?? '') === (row.taskId ?? '') &&
           e.date === date
       );
-      setDrawerContext({
+      setLogContext({
         targetUserId,
         editing: existing ?? null,
         defaultDate: date,
         defaultProjectId: row.projectId,
         defaultTaskId: row.taskId,
       });
-      setDrawerOpen(true);
+      setLogOpen(true);
     },
     [canEditForUser, entriesInRange]
   );
@@ -193,20 +195,31 @@ export function TimesheetView() {
   );
 
   return (
-    <DashboardContent>
-      <Card sx={{ p: { xs: 2, md: 3 } }}>
-        <Stack spacing={3}>
-          <TimesheetToolbar
-            viewMode={viewMode}
-            onViewMode={setViewMode}
-            selectedDate={selectedDate}
-            onSelectedDate={setSelectedDate}
-            weekDays={weekDays}
-            onPrev={() => shiftRange(-1)}
-            onNext={() => shiftRange(1)}
-            onToday={() => setSelectedDate(new Date())}
-          />
+    <DashboardContent sx={{ ...flexColumn }}>
+      <Card
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          flexGrow: 0,
+          alignSelf: 'stretch',
+          width: 1,
+          overflow: 'hidden',
+          p: 0,
+        }}
+      >
+        <TimesheetToolbar
+          viewMode={viewMode}
+          onViewMode={setViewMode}
+          selectedDate={selectedDate}
+          onSelectedDate={setSelectedDate}
+          weekDays={weekDays}
+          onPrev={() => shiftRange(-1)}
+          onNext={() => shiftRange(1)}
+          onToday={() => setSelectedDate(new Date())}
+          loading={allEntriesLoading}
+        />
 
+        <Box sx={{ display: 'flex', flexDirection: 'column', width: 1 }}>
           <TimesheetTable
             mode={isManagerView ? 'manager' : 'member'}
             viewerId={viewerId}
@@ -224,23 +237,23 @@ export function TimesheetView() {
           />
 
           {allEntriesLoading && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ px: 2, py: 1, flexShrink: 0 }}>
               Loading…
             </Typography>
           )}
-        </Stack>
+        </Box>
       </Card>
 
-      <LogTimeDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        targetUserId={drawerContext.targetUserId}
+      <LogTimeDialog
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        targetUserId={logContext.targetUserId}
         historyEntries={historyEntries}
         weekDays={weekDays}
-        defaultDate={drawerContext.defaultDate}
-        defaultProjectId={drawerContext.defaultProjectId}
-        defaultTaskId={drawerContext.defaultTaskId}
-        editingEntry={drawerContext.editing ?? undefined}
+        defaultDate={logContext.defaultDate}
+        defaultProjectId={logContext.defaultProjectId}
+        defaultTaskId={logContext.defaultTaskId}
+        editingEntry={logContext.editing ?? undefined}
       />
     </DashboardContent>
   );

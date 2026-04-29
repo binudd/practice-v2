@@ -14,6 +14,8 @@ const OverviewPage = lazy(() => import('src/pages/dashboard/overview'));
 
 // Projects
 const ProjectListPage = lazy(() => import('src/pages/dashboard/project/list'));
+const ProjectTemplatesPage = lazy(() => import('src/pages/dashboard/project/templates'));
+const ProjectRecurringProjectsPage = lazy(() => import('src/pages/dashboard/project/recurring-projects'));
 const ProjectNewPage = lazy(() => import('src/pages/dashboard/project/new'));
 const ProjectEditPage = lazy(() => import('src/pages/dashboard/project/edit'));
 const ProjectDetailsPage = lazy(() => import('src/pages/dashboard/project/details'));
@@ -76,6 +78,11 @@ export const dashboardRoutes = [
         path: 'projects',
         children: [
           { element: <ProjectListPage />, index: true },
+          { path: 'templates', element: <ProjectTemplatesPage /> },
+          {
+            path: 'recurring',
+            element: <ProjectRecurringProjectsPage />,
+          },
           {
             path: 'new',
             element: (

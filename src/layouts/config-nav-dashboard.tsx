@@ -68,6 +68,18 @@ export const navData = [
         roles: ALL,
         children: [
           { title: 'List', path: paths.dashboard.project.list, roles: ALL, icon: SUB.list },
+          {
+            title: 'Templates',
+            path: paths.dashboard.project.templates.root,
+            roles: ALL,
+            icon: <Iconify icon="solar:copy-bold" width={22} />,
+          },
+          {
+            title: 'Recurring',
+            path: paths.dashboard.project.recurringProjects.root,
+            roles: ALL,
+            icon: <Iconify icon="solar:calendar-bold" width={22} />,
+          },
           { title: 'New', path: paths.dashboard.project.new, roles: PROJECT_EDIT, icon: SUB.add },
         ],
       },

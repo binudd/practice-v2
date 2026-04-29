@@ -6,11 +6,13 @@ import { formatHoursAsHMM } from './format-time';
 
 export type HourSuggestion = {
   hours: number;
-  projectId?: string;
-  taskId?: string;
+  /** Same as quick-pick labels (e.g. "1:30"). */
   label: string;
 };
 
+/**
+ * Recent distinct hour values from entries (newest first) for fast typing — hours only, no task/project.
+ */
 export function getRecentHourSuggestions(
   entries: ITimesheetEntry[],
   options: { limit?: number } = {}
@@ -18,26 +20,21 @@ export function getRecentHourSuggestions(
   const limit = options.limit ?? 6;
   const sorted = [...entries]
     .filter((e) => e.hours > 0)
-    .sort((a, b) => (a.date === b.date ? 0 : b.date.localeCompare(a.date)));
+    .sort((a, b) => b.date.localeCompare(a.date));
 
-  const seen = new Set<string>();
+  const seen = new Set<number>();
 
   return sorted.reduce<HourSuggestion[]>((out, e) => {
     if (out.length >= limit) {
       return out;
     }
-    const key = `${e.hours}|${e.projectId}|${e.taskId ?? ''}`;
-    if (seen.has(key)) {
+    if (seen.has(e.hours)) {
       return out;
     }
-    seen.add(key);
+    seen.add(e.hours);
     out.push({
       hours: e.hours,
-      projectId: e.projectId,
-      taskId: e.taskId,
-      label: e.taskName
-        ? `${formatHoursAsHMM(e.hours)} · ${e.taskName}`
-        : formatHoursAsHMM(e.hours),
+      label: formatHoursAsHMM(e.hours),
     });
     return out;
   }, []);

@@ -48,6 +48,17 @@ export const paths = {
       root: `${ROOTS.DASHBOARD}/projects`,
       list: `${ROOTS.DASHBOARD}/projects`,
       new: `${ROOTS.DASHBOARD}/projects/new`,
+      /** Create flow with initial flags (template / recurring project). */
+      newWithPreset: (preset: 'template' | 'recurring') =>
+        `${ROOTS.DASHBOARD}/projects/new?preset=${preset}`,
+      /** Template projects — separate module from the main project list. */
+      templates: {
+        root: `${ROOTS.DASHBOARD}/projects/templates`,
+      },
+      /** Recurring projects — separate module from the main project list. */
+      recurringProjects: {
+        root: `${ROOTS.DASHBOARD}/projects/recurring`,
+      },
       details: (id: string) => `${ROOTS.DASHBOARD}/projects/${id}`,
       edit: (id: string) => `${ROOTS.DASHBOARD}/projects/${id}/edit`,
       kanban: (id: string) => `${ROOTS.DASHBOARD}/projects/${id}/kanban`,
