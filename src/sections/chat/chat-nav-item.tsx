@@ -19,9 +19,9 @@ import { fToNow } from 'src/utils/format-time';
 
 import { clickConversation } from 'src/actions/chat';
 
-import { useMockedUser } from 'src/auth/hooks';
-
 import { UserAvatar } from 'src/components/user-avatar';
+
+import { useMockedUser } from 'src/auth/hooks';
 
 import { useNavItem } from './hooks/use-nav-item';
 

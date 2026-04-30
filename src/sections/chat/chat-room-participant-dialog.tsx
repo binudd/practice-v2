@@ -1,7 +1,6 @@
 import type { IChatParticipant } from 'src/types/chat';
 
 import Stack from '@mui/material/Stack';
-import { UserAvatar } from 'src/components/user-avatar';
 import Dialog from '@mui/material/Dialog';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -10,6 +9,7 @@ import DialogContent from '@mui/material/DialogContent';
 import { varAlpha } from 'src/theme/styles';
 
 import { Iconify } from 'src/components/iconify';
+import { UserAvatar } from 'src/components/user-avatar';
 
 // ----------------------------------------------------------------------
 

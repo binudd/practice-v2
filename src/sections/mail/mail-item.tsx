@@ -3,12 +3,13 @@ import type { ListItemButtonProps } from '@mui/material/ListItemButton';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import { UserAvatar } from 'src/components/user-avatar';
 import Typography from '@mui/material/Typography';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
 
 import { fToNow } from 'src/utils/format-time';
+
+import { UserAvatar } from 'src/components/user-avatar';
 
 // ----------------------------------------------------------------------
 

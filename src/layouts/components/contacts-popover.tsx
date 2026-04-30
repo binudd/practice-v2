@@ -12,8 +12,8 @@ import ListItemText from '@mui/material/ListItemText';
 import { fToNow } from 'src/utils/format-time';
 
 import { varHover } from 'src/components/animate';
-import { UserAvatar } from 'src/components/user-avatar';
 import { Scrollbar } from 'src/components/scrollbar';
+import { UserAvatar } from 'src/components/user-avatar';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
 
 // ----------------------------------------------------------------------

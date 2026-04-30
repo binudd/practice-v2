@@ -1,13 +1,13 @@
 import type { IChatParticipant } from 'src/types/chat';
 
 import Stack from '@mui/material/Stack';
-import { UserAvatar } from 'src/components/user-avatar';
 import Collapse from '@mui/material/Collapse';
 import Typography from '@mui/material/Typography';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { Iconify } from 'src/components/iconify';
+import { UserAvatar } from 'src/components/user-avatar';
 
 import { CollapseButton } from './styles';
 

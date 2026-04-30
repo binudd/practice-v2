@@ -13,8 +13,8 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { _socials } from 'src/_mock';
 
-import { Iconify, SocialIcon } from 'src/components/iconify';
 import { UserAvatar } from 'src/components/user-avatar';
+import { Iconify, SocialIcon } from 'src/components/iconify';
 import { SearchNotFound } from 'src/components/search-not-found';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
 

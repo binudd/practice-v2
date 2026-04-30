@@ -21,8 +21,8 @@ import { fDateTime } from 'src/utils/format-time';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
-import { FileThumbnail } from 'src/components/file-thumbnail';
 import { UserAvatar } from 'src/components/user-avatar';
+import { FileThumbnail } from 'src/components/file-thumbnail';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
 
 import { FileManagerShareDialog } from './file-manager-share-dialog';
