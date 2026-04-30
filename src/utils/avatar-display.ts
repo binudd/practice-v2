@@ -15,7 +15,7 @@ export function nameToInitials(name: string): string {
 
 const PALETTE_VARIANTS = ['primary', 'secondary', 'info', 'success', 'warning', 'error'] as const;
 
-/** Deterministic foreground/background pair from any string without per-user constants. */
+/** Deterministic pastel/flat foreground/background from theme tokens (lighter + dark, like AvatarGroup avatars). */
 export function avatarSxFromPaletteKey(theme: Theme, key: string) {
   let hash = 0;
   for (let i = 0; i < key.length; i += 1) {
@@ -23,10 +23,10 @@ export function avatarSxFromPaletteKey(theme: Theme, key: string) {
     hash = (hash + ch * (i + 107)) % 1000000007;
   }
   const variant = PALETTE_VARIANTS[Math.abs(hash) % PALETTE_VARIANTS.length];
-  const palette = theme.palette[variant];
+  const p = theme.vars.palette[variant];
   return {
-    bgcolor: palette.main,
-    color: palette.contrastText,
+    bgcolor: p.lighter,
+    color: p.dark,
     typography: 'caption',
     fontWeight: theme.typography.fontWeightSemiBold as number | string,
   } as const;
