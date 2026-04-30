@@ -35,6 +35,7 @@ import { updateProject } from 'src/actions/project';
 import { PROJECT_STATUS_OPTIONS } from 'src/_mock/_project';
 import { ProjectPolicy } from 'src/domain/project/project-policy';
 import { deleteProjectCascade } from 'src/services/project-service';
+import { formatProjectCodeWithClient } from 'src/domain/project/project-selectors';
 
 import { Iconify } from 'src/components/iconify';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
@@ -172,7 +173,7 @@ export function ProjectCard({ project }: Props) {
                 </Box>
               </Tooltip>
               <Typography variant="caption" color="text.secondary" noWrap>
-                {project.code}
+                {formatProjectCodeWithClient(project)}
               </Typography>
             </Stack>
             <Typography variant="subtitle1" noWrap>

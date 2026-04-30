@@ -27,3 +27,11 @@ export const getProjectsForClient = (projects: IProject[], clientId: string) =>
 
 export const getProjectsForMember = (projects: IProject[], userId: string) =>
   projects.filter((p) => p.ownerId === userId || p.members.includes(userId));
+
+/** e.g. `PRJ-01 / Acme Corp` when `clientCompanyName` is set; otherwise the code alone. */
+export function formatProjectCodeWithClient(
+  project: Pick<IProject, 'code' | 'clientCompanyName'>
+): string {
+  const client = project.clientCompanyName?.trim();
+  return client ? `${project.code} / ${client}` : project.code;
+}

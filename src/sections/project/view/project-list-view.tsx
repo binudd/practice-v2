@@ -35,6 +35,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { PROJECT_STATUS_OPTIONS } from 'src/_mock/_project';
 import { useUIPreferencesStore } from 'src/store/ui-preferences-store';
 import { useFiltersStore, selectScreenFilter } from 'src/store/filters-store';
+import { formatProjectCodeWithClient } from 'src/domain/project/project-selectors';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -151,6 +152,18 @@ function matchesModuleTab(project: IProject, tab: Exclude<BrowseListTab, 'overvi
   if (tab === 'completed') return project.status === 'completed';
   if (tab === 'templates') return project.isTemplate;
   return project.isRecurring;
+}
+
+function projectMatchesSearch(project: IProject, searchRaw: string): boolean {
+  const q = searchRaw.trim().toLowerCase();
+  if (!q) return true;
+  const client = project.clientCompanyName?.trim().toLowerCase() ?? '';
+  return (
+    project.name.toLowerCase().includes(q) ||
+    project.code.toLowerCase().includes(q) ||
+    project.ownerName.toLowerCase().includes(q) ||
+    client.includes(q)
+  );
 }
 
 const PRIORITY_SET = new Set<IProjectPriority>(['low', 'medium', 'high', 'critical']);
@@ -288,12 +301,7 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
   }, [projects]);
 
   const moduleTabCounts = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const matchesSearch = (project: IProject) =>
-      !q ||
-      project.name.toLowerCase().includes(q) ||
-      project.code.toLowerCase().includes(q) ||
-      project.ownerName.toLowerCase().includes(q);
+    const matchesSearch = (project: IProject) => projectMatchesSearch(project, search);
 
     const scoped = projects.filter(matchesSearch);
 
@@ -310,11 +318,7 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
     const tabRow = listBrowseTab as Exclude<BrowseListTab, 'overview'>;
 
     return projects.filter((project) => {
-      const matchesSearch =
-        !search ||
-        project.name.toLowerCase().includes(search.toLowerCase()) ||
-        project.code.toLowerCase().includes(search.toLowerCase()) ||
-        project.ownerName.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = projectMatchesSearch(project, search);
 
       if (!matchesSearch || !matchesModuleTab(project, tabRow)) {
         return false;
@@ -408,7 +412,9 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
     {
       field: 'code',
       headerName: 'Code',
-      width: 120,
+      minWidth: 220,
+      width: 240,
+      valueGetter: (_value, row) => formatProjectCodeWithClient(row),
     },
     {
       field: 'name',

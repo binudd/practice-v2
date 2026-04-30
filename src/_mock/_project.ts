@@ -1,5 +1,5 @@
 import { _mock } from './_mock';
-import { _roleUsers } from './_user';
+import { _userList, _roleUsers } from './_user';
 
 // ----------------------------------------------------------------------
 
@@ -44,6 +44,7 @@ export const _projects = [...Array(8)].map((_, index) => {
     // Every 2nd project belongs to the canonical client so the Client role has
     // something to look at. Production code will use the real tenant/client id.
     clientId: index % 2 === 0 ? CLIENT_USER_ID : _mock.id(index + 50),
+    clientCompanyName: _userList[(index + 3) % _userList.length].company,
     description: _mock.sentence(index),
     progress: Math.round((completed / total) * 100),
     totalTasks: total,
