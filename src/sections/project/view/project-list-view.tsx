@@ -11,6 +11,7 @@ import Tabs from '@mui/material/Tabs';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Badge from '@mui/material/Badge';
+import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Grid from '@mui/material/Unstable_Grid2';
 import IconButton from '@mui/material/IconButton';
@@ -170,6 +171,8 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
     moduleHub === 'templates' || moduleHub === 'recurring'
       ? { kind: 'module', moduleKey: moduleHub }
       : { kind: 'default' };
+
+  const moduleBrowseKey = browseMode.kind === 'module' ? browseMode.moduleKey : null;
   const router = useRouter();
 
   const openFilters = useBoolean();
@@ -229,10 +232,21 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
   );
 
   const canReset =
-    priorities.length > 0 || Boolean(filterStartDate && filterEndDate);
+    priorities.length > 0 ||
+    Boolean(filterStartDate && filterEndDate) ||
+    Boolean(search.trim());
 
   const resetDrawerFilters = useCallback(() => {
-    setFilter(SCREEN_KEY, { priorities: [], startDate: null, endDate: null });
+    setFilter(SCREEN_KEY, {
+      priorities: [],
+      startDate: null,
+      endDate: null,
+      search: '',
+    });
+  }, [SCREEN_KEY, setFilter]);
+
+  const handleClearProjectSearch = useCallback(() => {
+    setFilter(SCREEN_KEY, { search: '' });
   }, [SCREEN_KEY, setFilter]);
 
   const handleChangeView = useCallback(
@@ -329,6 +343,15 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
   ]);
 
   const notFound = !projectsLoading && !projectsEmpty && dataFiltered.length === 0;
+
+  const searchTrimmed = search.trim();
+
+  const browseContextLabel = useMemo(() => {
+    if (moduleBrowseKey === 'templates') return 'Templates';
+    if (moduleBrowseKey === 'recurring') return 'Recurring projects';
+    const tabEntry = DEFAULT_MODULE_TABS.find((t) => t.value === defaultModuleTab);
+    return tabEntry?.label ?? 'Projects';
+  }, [moduleBrowseKey, defaultModuleTab]);
 
   const breadcrumbsForToolbar = useMemo(() => {
     if (moduleHub === 'templates') {
@@ -540,6 +563,8 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
             priorities={priorities}
             startDate={filterStartDate}
             endDate={filterEndDate}
+            search={search}
+            onRemoveSearch={handleClearProjectSearch}
             onReset={resetDrawerFilters}
             onRemovePriority={(p) =>
               setFilter(SCREEN_KEY, { priorities: priorities.filter((x) => x !== p) })
@@ -623,7 +648,20 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
             {projectsEmpty ? (
               <EmptyContent title="No projects" sx={{ py: 10 }} />
             ) : notFound ? (
-              <EmptyContent title={emptyCaption} sx={{ py: 10 }} />
+              searchTrimmed ? (
+                <EmptyContent
+                  title="No matching projects"
+                  description={`Nothing matches “${searchTrimmed}” in ${browseContextLabel}. Try different keywords or clear the search.`}
+                  action={
+                    <Button variant="outlined" color="inherit" onClick={handleClearProjectSearch}>
+                      Clear search
+                    </Button>
+                  }
+                  sx={{ py: 10 }}
+                />
+              ) : (
+                <EmptyContent title={emptyCaption} sx={{ py: 10 }} />
+              )
             ) : (
               <>{view === 'list' ? renderList : renderGrid}</>
             )}
