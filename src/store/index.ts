@@ -16,3 +16,6 @@ export type { UserState } from './user-store';
 
 export { useMenuStore } from './menu-store';
 export type { MenuState, Menu } from './menu-store';
+
+export { useProjectStore } from './project-store';
+export type { ProjectState } from './project-store';

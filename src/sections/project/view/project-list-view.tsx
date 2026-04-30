@@ -4,7 +4,6 @@ import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import type { IProject, IProjectStatus, IProjectPriority } from 'src/types/project';
 
 import { useMemo, useCallback } from 'react';
-
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
@@ -121,19 +120,18 @@ export function ProjectListView() {
   const openFilters = useBoolean();
 
   const role = useCurrentRole();
+  const filter = useFiltersStore(selectScreenFilter(SCREEN_KEY));
+  const search = (filter.search as string | undefined) ?? '';
 
-  // Clients only see their own projects; everyone else sees the full list.
   const { projects, projectsLoading, projectsEmpty } = useGetProjects({
-    scope: role === 'client' ? 'mine' : 'all',
+    // scope: role === 'client' ? 'mine' : 'all',
+    searchText: search,
   });
 
   const view = useUIPreferencesStore((s) => s.viewMode[SCREEN_KEY] ?? 'list');
   const setViewMode = useUIPreferencesStore((s) => s.setViewMode);
-
-  const filter = useFiltersStore(selectScreenFilter(SCREEN_KEY));
   const setFilter = useFiltersStore((s) => s.setFilter);
 
-  const search = (filter.search as string | undefined) ?? '';
   const rawModuleTab = filter.moduleTab as string | undefined;
   const moduleTab: ModuleTab =
     rawModuleTab && MODULE_TAB_SET.has(rawModuleTab) ? (rawModuleTab as ModuleTab) : 'active';

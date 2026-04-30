@@ -30,7 +30,7 @@ export function Chart({
       }}
       {...other}
     >
-      <ApexChart type={type} series={series} options={options} width="100%" height="100%" />
+      <ApexChart type={type} series={series ?? []} options={options} width="100%" height="100%" />
     </Box>
   );
 }
