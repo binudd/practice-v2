@@ -3,7 +3,7 @@ import type { ListItemButtonProps } from '@mui/material/ListItemButton';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
+import { UserAvatar } from 'src/components/user-avatar';
 import Typography from '@mui/material/Typography';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -31,9 +31,7 @@ export function MailItem({ mail, selected, sx, ...other }: Props) {
         }}
         {...other}
       >
-        <Avatar alt={mail.from.name} src={mail.from.avatarUrl ?? ''}>
-          {mail.from.name.charAt(0).toUpperCase()}
-        </Avatar>
+        <UserAvatar name={mail.from.name} src={mail.from.avatarUrl ?? undefined} />
 
         <ListItemText
           primary={mail.from.name}

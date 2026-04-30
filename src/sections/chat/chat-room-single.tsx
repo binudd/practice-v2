@@ -1,7 +1,7 @@
 import type { IChatParticipant } from 'src/types/chat';
 
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
+import { UserAvatar } from 'src/components/user-avatar';
 import Collapse from '@mui/material/Collapse';
 import Typography from '@mui/material/Typography';
 
@@ -22,8 +22,8 @@ export function ChatRoomSingle({ participant }: Props) {
 
   const renderInfo = (
     <Stack alignItems="center" sx={{ py: 5 }}>
-      <Avatar
-        alt={participant?.name}
+      <UserAvatar
+        name={participant?.name}
         src={participant?.avatarUrl}
         sx={{ width: 96, height: 96, mb: 2 }}
       />

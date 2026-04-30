@@ -18,7 +18,12 @@ import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
-export function KanbanColumnAdd({ sx, ...other }: BoxProps) {
+type KanbanColumnAddProps = BoxProps & {
+  /** When set, SWR cache updates target the project-scoped board */
+  boardProjectId?: string;
+};
+
+export function KanbanColumnAdd({ boardProjectId, sx, ...other }: KanbanColumnAddProps) {
   const [columnName, setColumnName] = useState('');
 
   const openAddColumn = useBoolean();
@@ -31,7 +36,7 @@ export function KanbanColumnAdd({ sx, ...other }: BoxProps) {
     try {
       const columnData = { id: uuidv4(), name: columnName.trim() ? columnName : 'Untitled' };
 
-      createColumn(columnData);
+      createColumn(columnData, boardProjectId);
 
       setColumnName('');
 
@@ -39,7 +44,7 @@ export function KanbanColumnAdd({ sx, ...other }: BoxProps) {
     } catch (error) {
       console.error(error);
     }
-  }, [columnName, openAddColumn]);
+  }, [boardProjectId, columnName, openAddColumn]);
 
   const handleKeyUpCreateColumn = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {

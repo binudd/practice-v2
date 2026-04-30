@@ -45,6 +45,7 @@ import { formatProjectCodeWithClient } from 'src/domain/project/project-selector
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
+import { BulkSelectionToolbar } from 'src/components/bulk-selection-toolbar';
 import {
   breadcrumbHomeLink,
   useSetDashboardBreadcrumbs,
@@ -760,35 +761,29 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
               <>{view === 'list' ? (
                 <>
                   {bulkSelectionEligible && !notFound && (
-                    <Stack
-                      direction={{ xs: 'column', sm: 'row' }}
-                      alignItems={{ xs: 'flex-start', sm: 'center' }}
-                      spacing={1.5}
-                      sx={{ mb: 2 }}
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        {selectedBulkRowIds.length > 0
-                          ? `${selectedBulkRowIds.length} selected`
-                          : 'Select rows for bulk updates'}
-                        {bulkSkippedByPolicy > 0
-                          ? ` · ${bulkSkippedByPolicy} not editable for you`
-                          : ''}
-                      </Typography>
-                      <Box sx={{ flexGrow: 1 }} />
-                      <Can perm="project:update">
-                        <Button
-                          variant="contained"
-                          size="small"
-                          disabled={
-                            selectedBulkRowIds.length === 0 || bulkEditableIds.length === 0
-                          }
-                          startIcon={<Iconify icon="solar:pen-bold" />}
-                          onClick={handleOpenBulkDialog}
-                        >
-                           update
-                        </Button>
-                      </Can>
-                    </Stack>
+                    <BulkSelectionToolbar
+                      selectedCount={selectedBulkRowIds.length}
+                      secondaryNote={
+                        bulkSkippedByPolicy > 0
+                          ? `${bulkSkippedByPolicy} not editable for you`
+                          : undefined
+                      }
+                      actions={
+                        <Can perm="project:update">
+                          <Button
+                            variant="contained"
+                            size="small"
+                            disabled={
+                              selectedBulkRowIds.length === 0 || bulkEditableIds.length === 0
+                            }
+                            startIcon={<Iconify icon="solar:pen-bold" />}
+                            onClick={handleOpenBulkDialog}
+                          >
+                             update
+                          </Button>
+                        </Can>
+                      }
+                    />
                   )}
                   {renderList}
                 </>

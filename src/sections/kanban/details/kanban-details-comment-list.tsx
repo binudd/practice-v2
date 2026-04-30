@@ -1,12 +1,12 @@
 import type { IKanbanComment } from 'src/types/kanban';
 
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
 
 import { fToNow } from 'src/utils/format-time';
 
 import { Image } from 'src/components/image';
+import { UserAvatar } from 'src/components/user-avatar';
 import { Lightbox, useLightBox } from 'src/components/lightbox';
 
 // ----------------------------------------------------------------------
@@ -27,7 +27,7 @@ export function KanbanDetailsCommentList({ comments }: Props) {
       <Stack component="ul" spacing={3}>
         {comments.map((comment) => (
           <Stack component="li" key={comment.id} direction="row" spacing={2}>
-            <Avatar src={comment.avatarUrl} />
+            <UserAvatar name={comment.name} src={comment.avatarUrl} />
 
             <Stack spacing={comment.messageType === 'image' ? 1 : 0.5} flexGrow={1}>
               <Stack direction="row" alignItems="center" justifyContent="space-between">

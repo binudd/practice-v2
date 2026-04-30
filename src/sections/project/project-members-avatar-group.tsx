@@ -2,21 +2,19 @@ import { useMemo, useState, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
-import Avatar from '@mui/material/Avatar';
 import Popover from '@mui/material/Popover';
 import Tooltip from '@mui/material/Tooltip';
 import ListItem from '@mui/material/ListItem';
-import { useTheme } from '@mui/material/styles';
 import ButtonBase from '@mui/material/ButtonBase';
 import Typography from '@mui/material/Typography';
 import AvatarGroup from '@mui/material/AvatarGroup';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
 
-import { nameToInitials, avatarSxFromPaletteKey } from 'src/utils/avatar-display';
-
 import { _mock } from 'src/_mock/_mock';
 import { _userList } from 'src/_mock/_user';
+
+import { PaletteLetterAvatar } from 'src/components/palette-letter-avatar';
 
 // ----------------------------------------------------------------------
 
@@ -44,7 +42,6 @@ type Props = {
 };
 
 export function ProjectMembersAvatarGroup({ projectId, members, compact }: Props) {
-  const theme = useTheme();
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const open = Boolean(anchor);
 
@@ -102,9 +99,11 @@ export function ProjectMembersAvatarGroup({ projectId, members, compact }: Props
         >
           {memberRows.map(({ id, name }) => (
             <Tooltip key={id} title={name} arrow>
-              <Avatar alt={name} sx={avatarSxFromPaletteKey(theme, id)}>
-                {nameToInitials(name)}
-              </Avatar>
+              <PaletteLetterAvatar
+                paletteKey={id}
+                displayName={name}
+                sx={{ width: size.wh, height: size.wh, fontSize: size.fontSize }}
+              />
             </Tooltip>
           ))}
         </AvatarGroup>
@@ -132,9 +131,11 @@ export function ProjectMembersAvatarGroup({ projectId, members, compact }: Props
           {memberRows.map(({ id, name }) => (
             <ListItem key={id} sx={{ px: 2, py: 0.75 }}>
               <ListItemAvatar sx={{ minWidth: 44 }}>
-                <Avatar sx={{ ...avatarSxFromPaletteKey(theme, id), width: 32, height: 32, fontSize: 12 }}>
-                  {nameToInitials(name)}
-                </Avatar>
+                <PaletteLetterAvatar
+                  paletteKey={id}
+                  displayName={name}
+                  sx={{ width: 32, height: 32, fontSize: 12 }}
+                />
               </ListItemAvatar>
               <ListItemText primaryTypographyProps={{ variant: 'subtitle2', noWrap: true }} primary={name} />
             </ListItem>

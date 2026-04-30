@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Avatar from '@mui/material/Avatar';
+import { UserAvatar } from 'src/components/user-avatar';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
 import MenuList from '@mui/material/MenuList';
@@ -32,7 +32,7 @@ export function FileManagerInvitedItem({ person }: Props) {
   return (
     <>
       <Box component="li" sx={{ display: 'flex', alignItems: 'center', py: 1 }}>
-        <Avatar alt={person.name} src={person.avatarUrl} sx={{ mr: 2 }} />
+        <UserAvatar name={person.name} src={person.avatarUrl} sx={{ mr: 2 }} />
 
         <ListItemText
           primary={person.name}

@@ -22,9 +22,10 @@ type TaskItemProps = {
   sx?: SxProps<Theme>;
   task: IKanbanTask;
   columnId: UniqueIdentifier;
+  boardProjectId?: string;
 };
 
-export function KanbanTaskItem({ task, disabled, columnId, sx }: TaskItemProps) {
+export function KanbanTaskItem({ task, disabled, columnId, boardProjectId, sx }: TaskItemProps) {
   const openDetails = useBoolean();
 
   const { setNodeRef, listeners, isDragging, isSorting, transform, transition } = useSortable({
@@ -37,22 +38,22 @@ export function KanbanTaskItem({ task, disabled, columnId, sx }: TaskItemProps) 
 
   const handleDeleteTask = useCallback(async () => {
     try {
-      deleteTask(columnId, task.id);
+      deleteTask(columnId, task.id, boardProjectId);
       toast.success('Delete success!', { position: 'top-center' });
     } catch (error) {
       console.error(error);
     }
-  }, [columnId, task.id]);
+  }, [boardProjectId, columnId, task.id]);
 
   const handleUpdateTask = useCallback(
     async (taskData: IKanbanTask) => {
       try {
-        updateTask(columnId, taskData);
+        updateTask(columnId, taskData, boardProjectId);
       } catch (error) {
         console.error(error);
       }
     },
-    [columnId]
+    [boardProjectId, columnId]
   );
 
   return (

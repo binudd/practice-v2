@@ -15,14 +15,21 @@ export function nameToInitials(name: string): string {
 
 const PALETTE_VARIANTS = ['primary', 'secondary', 'info', 'success', 'warning', 'error'] as const;
 
-/** Deterministic pastel/flat foreground/background from theme tokens (lighter + dark, like AvatarGroup avatars). */
-export function avatarSxFromPaletteKey(theme: Theme, key: string) {
+export type PaletteAccentKey = (typeof PALETTE_VARIANTS)[number];
+
+/** Deterministic palette slot for avatar backgrounds (aligned with themed `colorDefault`). */
+export function paletteVariantKeyFromSeed(seed: string): PaletteAccentKey {
   let hash = 0;
-  for (let i = 0; i < key.length; i += 1) {
-    const ch = key.charCodeAt(i);
+  for (let i = 0; i < seed.length; i += 1) {
+    const ch = seed.charCodeAt(i);
     hash = (hash + ch * (i + 107)) % 1000000007;
   }
-  const variant = PALETTE_VARIANTS[Math.abs(hash) % PALETTE_VARIANTS.length];
+  return PALETTE_VARIANTS[Math.abs(hash) % PALETTE_VARIANTS.length];
+}
+
+/** Deterministic pastel/flat foreground/background from theme tokens (lighter + dark, like AvatarGroup avatars). */
+export function avatarSxFromPaletteKey(theme: Theme, key: string) {
+  const variant = paletteVariantKeyFromSeed(key);
   const p = theme.vars.palette[variant];
   return {
     bgcolor: p.lighter,

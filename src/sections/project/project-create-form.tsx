@@ -2,9 +2,9 @@ import type { IProject, IProjectPriority } from 'src/types/project';
 
 import dayjs from 'dayjs';
 import { z as zod } from 'zod';
-import { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState, useEffect, useCallback } from 'react';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -22,6 +22,8 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
+import { useBoolean } from 'src/hooks/use-boolean';
+
 import { uuidv4 } from 'src/utils/uuidv4';
 import { fIsAfter } from 'src/utils/format-time';
 
@@ -34,6 +36,9 @@ import { createProjectWithBoard } from 'src/services/project-service';
 
 import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
+import { AssigneePickerStrip } from 'src/components/assignee-picker-strip';
+
+import { KanbanContactsDialog } from 'src/sections/kanban/components/kanban-contacts-dialog';
 
 import { useAuthContext } from 'src/auth/hooks';
 
@@ -44,6 +49,8 @@ import {
 import {
   DEPARTMENT_OPTIONS,
   projectUserNameById,
+  projectAssignPickerRows,
+  projectAvatarsForMemberIds,
   PROJECT_USER_SELECT_OPTIONS,
   resolveProjectUserIdInPickerOptions,
 } from './project-field-options';
@@ -122,6 +129,7 @@ const ProjectCreateFormSchema = zod
     budgetType: zod.enum(['fixed', 'time_expenses', 'non_billable']),
     settings: settingsSchema,
     attachments: zod.any(),
+    memberIds: zod.array(zod.string()),
   })
   .refine((d) => !fIsAfter(d.startDate, d.endDate), {
     path: ['endDate'],
@@ -205,6 +213,7 @@ export function projectToFormValues(
     budgetType,
     settings: { ...DEFAULT_SETTINGS, ...project.settings },
     attachments: [],
+    memberIds: [...project.members],
   };
 }
 
@@ -230,6 +239,7 @@ function emptyFormValues(defaultUserId: string): ProjectCreateFormValues {
     budgetType: 'non_billable',
     settings: { ...DEFAULT_SETTINGS },
     attachments: [],
+    memberIds: [],
   };
 }
 
@@ -253,6 +263,40 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
     : creationPreset === 'template' ? paths.dashboard.project.templates.root
     : creationPreset === 'recurring' ? paths.dashboard.project.recurringProjects.root
     : paths.dashboard.project.list;
+
+  const [postCreateContext, setPostCreateContext] = useState<{ id: string } | null>(null);
+  const [postMemberIds, setPostMemberIds] = useState<string[]>([]);
+  const [postTeamSaving, setPostTeamSaving] = useState(false);
+  const postTeamContacts = useBoolean();
+  const editTeamContacts = useBoolean();
+
+  const handleTogglePostMember = useCallback((id: string) => {
+    setPostMemberIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }, []);
+
+  const handleSkipPostTeam = useCallback(() => {
+    setPostCreateContext(null);
+    router.push(browseAfterSaveHref);
+  }, [browseAfterSaveHref, router]);
+
+  const handleContinuePostTeam = useCallback(async () => {
+    if (!postCreateContext) return;
+    setPostTeamSaving(true);
+    try {
+      await updateProject(postCreateContext.id, { members: postMemberIds });
+      notify({ kind: 'success', title: 'Team updated' });
+      const {id} = postCreateContext;
+      setPostCreateContext(null);
+      router.push(paths.dashboard.project.details(id));
+    } catch (error) {
+      console.error(error);
+      notify({ kind: 'error', title: 'Could not save team members' });
+    } finally {
+      setPostTeamSaving(false);
+    }
+  }, [postCreateContext, postMemberIds, router]);
   const methods = useForm<ProjectCreateFormValues>({
     resolver: zodResolver(ProjectCreateFormSchema),
     defaultValues:
@@ -261,7 +305,29 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
         : emptyFormValues(defaultUserId),
   });
 
-  const { reset, handleSubmit, control, formState: { isSubmitting } } = methods;
+  const {
+    reset,
+    handleSubmit,
+    control,
+    setValue,
+    getValues,
+    formState: { isSubmitting },
+  } = methods;
+
+  const watchedMemberIds = useWatch({
+    control,
+    name: 'memberIds',
+    defaultValue: [] as string[],
+  });
+
+  const handleToggleFormMemberIds = useCallback(
+    (id: string) => {
+      const prev = getValues('memberIds');
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      setValue('memberIds', next, { shouldDirty: true });
+    },
+    [getValues, setValue]
+  );
 
   useEffect(() => {
     if (mode === 'edit' && current) {
@@ -311,7 +377,7 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
 
     if (mode === 'edit' && current) {
       try {
-        await updateProject(current.id, sharedFields);
+        await updateProject(current.id, { ...sharedFields, members: data.memberIds });
         notify({ kind: 'success', title: 'Project updated' });
         router.push(paths.dashboard.project.list);
       } catch (error) {
@@ -336,13 +402,70 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
     try {
       const result = await createProjectWithBoard(project);
       if (result.ok) {
-        router.push(browseAfterSaveHref);
+        setPostMemberIds([]);
+        setPostCreateContext({ id: project.id });
       }
     } catch (error) {
       console.error(error);
       notify({ kind: 'error', title: 'Could not create project' });
     }
   });
+
+  if (mode === 'create' && postCreateContext) {
+    return (
+      <Card
+        sx={{
+          borderRadius: 2,
+          boxShadow: (theme) => theme.customShadows.card,
+        }}
+      >
+        <CardHeader
+          title="Add team (optional)"
+          subheader="Project created successfully. Add people now or skip and manage the team later when editing the project."
+          titleTypographyProps={{ variant: 'h6' }}
+          action={
+            <IconButton onClick={handleSkipPostTeam} aria-label="Close">
+              <Iconify icon="mingcute:close-line" />
+            </IconButton>
+          }
+          sx={{
+            py: 2,
+            px: { xs: 2, sm: 3 },
+            borderBottom: (theme) => `solid 1px ${theme.vars.palette.divider}`,
+          }}
+        />
+        <Stack spacing={3} sx={{ p: { xs: 2, sm: 3 } }}>
+          <AssigneePickerStrip
+            label="Members"
+            avatarUsers={projectAvatarsForMemberIds(postMemberIds)}
+            onAddClick={postTeamContacts.onTrue}
+          />
+          <KanbanContactsDialog
+            open={postTeamContacts.value}
+            onClose={postTeamContacts.onFalse}
+            rows={projectAssignPickerRows()}
+            title="Users"
+            selectedIds={postMemberIds}
+            onToggle={handleTogglePostMember}
+          />
+          <Stack direction="row" justifyContent="flex-end" spacing={1.5}>
+            <Button variant="outlined" onClick={handleSkipPostTeam}>
+              Skip for now
+            </Button>
+            <LoadingButton
+              variant="contained"
+              loading={postTeamSaving}
+              onClick={async () => {
+                await handleContinuePostTeam();
+              }}
+            >
+              Continue
+            </LoadingButton>
+          </Stack>
+        </Stack>
+      </Card>
+    );
+  }
 
   const heading =
     mode === 'edit'
@@ -420,6 +543,28 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
                   ))}
                 </Field.Select>
               </Grid>
+              {mode === 'edit' && (
+                <Grid xs={12}>
+                  <Stack spacing={1}>
+                    <AssigneePickerStrip
+                      label="Members"
+                      avatarUsers={projectAvatarsForMemberIds(watchedMemberIds ?? [])}
+                      onAddClick={editTeamContacts.onTrue}
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      Optional. People on the project besides owner and leader.
+                    </Typography>
+                    <KanbanContactsDialog
+                      open={editTeamContacts.value}
+                      onClose={editTeamContacts.onFalse}
+                      rows={projectAssignPickerRows()}
+                      title="Users"
+                      selectedIds={watchedMemberIds ?? []}
+                      onToggle={handleToggleFormMemberIds}
+                    />
+                  </Stack>
+                </Grid>
+              )}
             </Grid>
           </FormSection>
 

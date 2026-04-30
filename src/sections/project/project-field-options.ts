@@ -17,6 +17,27 @@ export function projectUserNameById(userId: string): string {
   return _userList.find((u) => u.id === userId)?.name ?? '';
 }
 
+/** Full mock user list for member pickers (not limited to owner field slice). */
+export function projectAssignPickerRows() {
+  return _userList.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    avatarUrl: u.avatarUrl,
+  }));
+}
+
+export function projectMemberMultiSelectOptions() {
+  return projectAssignPickerRows().map((r) => ({ value: r.id, label: r.name }));
+}
+
+export function projectAvatarsForMemberIds(ids: readonly string[]) {
+  return ids
+    .map((id) => _userList.find((u) => u.id === id))
+    .filter((u): u is (typeof _userList)[number] => u != null)
+    .map((u) => ({ id: u.id, name: u.name, avatarUrl: u.avatarUrl }));
+}
+
 export function resolveProjectUserIdInPickerOptions(
   id: string | undefined,
   fallback: string

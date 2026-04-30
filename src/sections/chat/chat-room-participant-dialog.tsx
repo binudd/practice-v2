@@ -1,7 +1,7 @@
 import type { IChatParticipant } from 'src/types/chat';
 
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
+import { UserAvatar } from 'src/components/user-avatar';
 import Dialog from '@mui/material/Dialog';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -27,8 +27,8 @@ export function ChatRoomParticipantDialog({ participant, open, onClose }: Props)
       </IconButton>
 
       <DialogContent sx={{ py: 5, px: 3, display: 'flex' }}>
-        <Avatar
-          alt={participant.name}
+        <UserAvatar
+          name={participant.name}
           src={participant.avatarUrl}
           sx={{ width: 96, height: 96, mr: 3 }}
         />

@@ -3,7 +3,6 @@ import type { CardProps } from '@mui/material/Card';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Avatar from '@mui/material/Avatar';
 import CardHeader from '@mui/material/CardHeader';
 
 import { orderBy } from 'src/utils/helper';
@@ -12,6 +11,7 @@ import { fShortenNumber } from 'src/utils/format-number';
 import { varAlpha } from 'src/theme/styles';
 
 import { Iconify } from 'src/components/iconify';
+import { UserAvatar } from 'src/components/user-avatar';
 
 // ----------------------------------------------------------------------
 
@@ -65,7 +65,7 @@ function Item({ item, index, sx, ...other }: ItemProps) {
       }}
       {...other}
     >
-      <Avatar alt={item.name} src={item.avatarUrl} />
+      <UserAvatar name={item.name} src={item.avatarUrl} />
 
       <Box flexGrow={1}>
         <Box sx={{ typography: 'subtitle2' }}>{item.name}</Box>

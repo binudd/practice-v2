@@ -2,11 +2,12 @@ import type { IUserProfileCover } from 'src/types/user';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
 import { useTheme } from '@mui/material/styles';
 import ListItemText from '@mui/material/ListItemText';
 
 import { varAlpha, bgGradient } from 'src/theme/styles';
+
+import { UserAvatar } from 'src/components/user-avatar';
 
 // ----------------------------------------------------------------------
 
@@ -34,18 +35,17 @@ export function ProfileCover({ name, avatarUrl, role, coverUrl }: IUserProfileCo
           position: { md: 'absolute' },
         }}
       >
-        <Avatar
-          alt={name}
+        <UserAvatar
+          name={name}
           src={avatarUrl}
           sx={{
             mx: 'auto',
             width: { xs: 64, md: 128 },
             height: { xs: 64, md: 128 },
             border: `solid 2px ${theme.vars.palette.common.white}`,
+            fontSize: { xs: 24, md: 42 },
           }}
-        >
-          {name?.charAt(0).toUpperCase()}
-        </Avatar>
+        />
 
         <ListItemText
           sx={{ mt: 3, ml: { md: 3 }, textAlign: { xs: 'center', md: 'unset' } }}

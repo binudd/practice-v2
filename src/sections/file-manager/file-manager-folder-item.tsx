@@ -7,7 +7,7 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Avatar from '@mui/material/Avatar';
+import { UserAvatar } from 'src/components/user-avatar';
 import Divider from '@mui/material/Divider';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
@@ -169,7 +169,7 @@ export function FileManagerFolderItem({
       }}
     >
       {folder.shared?.map((person) => (
-        <Avatar key={person.id} alt={person.name} src={person.avatarUrl} />
+        <UserAvatar key={person.id} name={person.name} src={person.avatarUrl} />
       ))}
     </AvatarGroup>
   );

@@ -5,11 +5,11 @@ import { useState, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Button from '@mui/material/Button';
-import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
 import ListItemText from '@mui/material/ListItemText';
 
 import { Iconify } from 'src/components/iconify';
+import { UserAvatar } from 'src/components/user-avatar';
 
 // ----------------------------------------------------------------------
 
@@ -70,7 +70,7 @@ function FollowerItem({ follower, selected, onSelected }: FollowerItemProps) {
 
   return (
     <Card sx={{ display: 'flex', alignItems: 'center', p: (theme) => theme.spacing(3, 2, 3, 3) }}>
-      <Avatar alt={name} src={avatarUrl} sx={{ width: 48, height: 48, mr: 2 }} />
+      <UserAvatar name={name} src={avatarUrl} sx={{ width: 48, height: 48, mr: 2 }} />
 
       <ListItemText
         primary={name}

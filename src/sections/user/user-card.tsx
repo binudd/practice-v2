@@ -3,7 +3,6 @@ import type { IUserCard } from 'src/types/user';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -17,6 +16,7 @@ import { AvatarShape } from 'src/assets/illustrations';
 
 import { Image } from 'src/components/image';
 import { SocialIcon } from 'src/components/iconify';
+import { UserAvatar } from 'src/components/user-avatar';
 
 // ----------------------------------------------------------------------
 
@@ -39,8 +39,8 @@ export function UserCard({ user }: Props) {
           }}
         />
 
-        <Avatar
-          alt={user.name}
+        <UserAvatar
+          name={user.name}
           src={user.avatarUrl}
           sx={{
             width: 64,

@@ -10,6 +10,8 @@ import IconButton from '@mui/material/IconButton';
 
 import { varHover, AnimateAvatar } from 'src/components/animate';
 
+import { nameToInitials } from 'src/utils/avatar-display';
+
 // ----------------------------------------------------------------------
 
 export type AccountButtonProps = IconButtonProps & {
@@ -60,7 +62,7 @@ export function AccountButton({ open, photoURL, displayName, sx, ...other }: Acc
             },
           }}
         >
-          {displayName?.charAt(0).toUpperCase()}
+          {nameToInitials(displayName ?? '')}
         </AnimateAvatar>
       </NoSsr>
     </IconButton>
