@@ -6,12 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import Card from '@mui/material/Card';
-import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
-import Typography from '@mui/material/Typography';
-import LinearProgress from '@mui/material/LinearProgress';
 
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
@@ -21,7 +16,6 @@ import { useGetProject } from 'src/actions/project';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { ProjectPolicy } from 'src/domain/project/project-policy';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
 import { breadcrumbHomeLink, useSetDashboardBreadcrumbs, DashboardToolbarPrimaryButton } from 'src/components/dashboard-breadcrumbs';
@@ -41,6 +35,7 @@ import { ProjectAutomationView } from 'src/sections/project/automation';
 
 import { Can } from 'src/auth/guard';
 
+import { ProjectOverviewPanel } from './project-overview-panel';
 import { PROJECT_DETAIL_QUERY_KEYS } from './project-detail-query-params';
 import {
   PROJECT_DETAIL_TABS,
@@ -56,60 +51,10 @@ type Props = {
   id: string;
 };
 
-function renderOverviewPanel(project: IProject) {
-  return (
-    <Card sx={{ p: 3 }}>
-      <Stack spacing={3}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Stack>
-            <Typography variant="subtitle2" color="text.secondary">
-              {project.code}
-            </Typography>
-            <Typography variant="h5">{project.name}</Typography>
-          </Stack>
-          <Label variant="soft" color="info">
-            {project.status}
-          </Label>
-        </Stack>
-
-        <Typography variant="body2" color="text.secondary">
-          {project.description ?? 'No description'}
-        </Typography>
-
-        <Divider />
-
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
-          <Stack spacing={0.5} sx={{ flex: 1 }}>
-            <Typography variant="caption" color="text.secondary">
-              Progress
-            </Typography>
-            <LinearProgress variant="determinate" value={project.progress} />
-            <Typography variant="body2">
-              {project.completedTasks}/{project.totalTasks} tasks ({project.progress}%)
-            </Typography>
-          </Stack>
-          <Stack spacing={0.5} sx={{ flex: 1 }}>
-            <Typography variant="caption" color="text.secondary">
-              Owner
-            </Typography>
-            <Typography variant="body2">{project.ownerName}</Typography>
-          </Stack>
-          <Stack spacing={0.5} sx={{ flex: 1 }}>
-            <Typography variant="caption" color="text.secondary">
-              Team size
-            </Typography>
-            <Typography variant="body2">{project.members.length} members</Typography>
-          </Stack>
-        </Stack>
-      </Stack>
-    </Card>
-  );
-}
-
 function renderTabPanel(tab: ProjectDetailTabId, project: IProject | undefined) {
   switch (tab) {
     case 'overview':
-      return project ? renderOverviewPanel(project) : null;
+      return project ? <ProjectOverviewPanel project={project} /> : null;
     case 'kanban':
       return project ? <KanbanView embedded projectId={project.id} title={project.name} /> : null;
     case 'files':

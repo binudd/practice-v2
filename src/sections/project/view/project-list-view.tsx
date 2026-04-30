@@ -1,9 +1,13 @@
 import type { IDatePickerControl } from 'src/types/common';
 import type { ViewMode } from 'src/store/ui-preferences-store';
-import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import type { IProject, IProjectStatus, IProjectPriority } from 'src/types/project';
+import type {
+  GridColDef,
+  GridRowParams,
+  GridRowSelectionModel,
+} from '@mui/x-data-grid';
 
-import { useMemo, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
@@ -31,8 +35,9 @@ import { fIsAfter, fIsBetween } from 'src/utils/format-time';
 
 import { varAlpha } from 'src/theme/styles';
 import { useGetProjects } from 'src/actions/project';
+import { notify } from 'src/store/notifications-store';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { PROJECT_STATUS_OPTIONS } from 'src/_mock/_project';
+import { ProjectPolicy } from 'src/domain/project/project-policy';
 import { useUIPreferencesStore } from 'src/store/ui-preferences-store';
 import { useFiltersStore, selectScreenFilter } from 'src/store/filters-store';
 import { formatProjectCodeWithClient } from 'src/domain/project/project-selectors';
@@ -47,11 +52,15 @@ import {
 } from 'src/components/dashboard-breadcrumbs';
 
 import { Can } from 'src/auth/guard';
-import { useCurrentRole } from 'src/auth/hooks';
+import { hasPermission } from 'src/auth/permissions';
+import { useAuthContext, useCurrentRole } from 'src/auth/hooks';
 
 import { ProjectCardList } from '../project-card-list';
 import { ProjectListFilters } from '../project-list-filters';
+import { ProjectBulkUpdateDialog } from '../project-bulk-update-dialog';
 import { ProjectListFiltersResult } from '../project-list-filters-result';
+import { ProjectMembersAvatarGroup } from '../project-members-avatar-group';
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_SOFT_COLOR } from '../project-status-meta';
 import {
   PROJECT_LIST_FILTER_KEY,
   PROJECT_BROWSE_FILTER_KEYS,
@@ -86,18 +95,6 @@ const EMPTY_TITLE: Record<Exclude<BrowseListTab, 'overview'>, string> = {
   completed: 'No completed projects',
   templates: 'No templates',
   recurring: 'No recurring projects',
-};
-
-const statusLabel: Record<IProjectStatus, string> = PROJECT_STATUS_OPTIONS.reduce(
-  (acc, option) => ({ ...acc, [option.value]: option.label }),
-  {} as Record<IProjectStatus, string>
-);
-
-const statusColor: Record<IProjectStatus, 'success' | 'warning' | 'info' | 'default'> = {
-  active: 'success',
-  'on-hold': 'warning',
-  completed: 'info',
-  archived: 'default',
 };
 
 // ----------------------------------------------------------------------
@@ -173,6 +170,14 @@ function normalizePriorities(raw: unknown): IProjectPriority[] {
   return raw.filter((p): p is IProjectPriority => PRIORITY_SET.has(p as IProjectPriority));
 }
 
+function emptyGridRowSelection(): GridRowSelectionModel {
+  return [];
+}
+
+function gridSelectionToIds(model: GridRowSelectionModel): string[] {
+  return [...model].map(String);
+}
+
 // ----------------------------------------------------------------------
 
 type ProjectListBrowseMode =
@@ -235,6 +240,23 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
 
   const listBrowseTab: BrowseListTab | 'overview' =
     browseMode.kind === 'module' ? browseMode.moduleKey : defaultModuleTab;
+
+  const { user } = useAuthContext();
+  const bulkDialog = useBoolean();
+  const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>(
+    emptyGridRowSelection
+  );
+
+  const bulkSelectionEligible =
+    view === 'list' &&
+    Boolean(user && hasPermission(user.role, 'project:update')) &&
+    listBrowseTab !== 'overview';
+
+  useEffect(() => {
+    if (!bulkSelectionEligible) {
+      setRowSelectionModel(emptyGridRowSelection());
+    }
+  }, [bulkSelectionEligible]);
 
   const priorities = normalizePriorities(filter.priorities);
   const filterStartDate = (filter.startDate as IDatePickerControl | undefined) ?? null;
@@ -350,6 +372,47 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
 
   const searchTrimmed = search.trim();
 
+  const selectedBulkRowIds = useMemo(
+    () => gridSelectionToIds(rowSelectionModel),
+    [rowSelectionModel]
+  );
+
+  const bulkEditableIds = useMemo(
+    () =>
+      selectedBulkRowIds
+        .map((id) => projects.find((p) => p.id === id))
+        .filter((p): p is IProject => Boolean(p && user && ProjectPolicy.canEdit(user, p)))
+        .map((p) => p.id),
+    [projects, selectedBulkRowIds, user]
+  );
+
+  const bulkSkippedByPolicy = selectedBulkRowIds.length - bulkEditableIds.length;
+
+  const handleOpenBulkDialog = useCallback(() => {
+    if (selectedBulkRowIds.length === 0) return;
+    if (!user) return;
+    if (bulkEditableIds.length === 0) {
+      notify({
+        kind: 'warning',
+        title: 'Nothing to update',
+        description: 'Selected projects cannot be edited with your current permissions.',
+      });
+      return;
+    }
+    if (bulkSkippedByPolicy > 0) {
+      notify({
+        kind: 'info',
+        title: 'Some rows will be skipped',
+        description: `${bulkSkippedByPolicy} selected project(s) are not editable for you. Updates apply to ${bulkEditableIds.length} project(s).`,
+      });
+    }
+    bulkDialog.onTrue();
+  }, [bulkDialog, bulkEditableIds.length, bulkSkippedByPolicy, selectedBulkRowIds.length, user]);
+
+  const handleBulkApplied = useCallback(() => {
+    setRowSelectionModel(emptyGridRowSelection());
+  }, []);
+
   const browseContextLabel = useMemo(() => {
     if (moduleBrowseKey === 'templates') return 'Templates';
     if (moduleBrowseKey === 'recurring') return 'Recurring projects';
@@ -430,8 +493,24 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
     {
       field: 'members',
       headerName: 'Members',
-      width: 110,
-      valueGetter: (value: string[]) => value.length,
+      width: 180,
+      sortable: true,
+      align: 'center',
+      headerAlign: 'center',
+      sortComparator: (v1: string[], v2: string[]) => v1.length - v2.length,
+      renderCell: (params) => (
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 1, py: 0.5 }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <ProjectMembersAvatarGroup
+            projectId={params.row.id}
+            members={params.row.members}
+            compact
+          />
+        </Box>
+      ),
     },
     {
       field: 'progress',
@@ -455,8 +534,8 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
       headerName: 'Status',
       width: 120,
       renderCell: (params) => (
-        <Label variant="soft" color={statusColor[params.value as IProjectStatus]}>
-          {statusLabel[params.value as IProjectStatus]}
+        <Label variant="soft" color={PROJECT_STATUS_SOFT_COLOR[params.value as IProjectStatus]}>
+          {PROJECT_STATUS_LABELS[params.value as IProjectStatus]}
         </Label>
       ),
     },
@@ -496,6 +575,15 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
         columns={columns}
         pageSizeOptions={[10, 25, 50]}
         initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+        getRowId={(row) => row.id}
+        checkboxSelection={bulkSelectionEligible}
+        rowSelectionModel={rowSelectionModel}
+        onRowSelectionModelChange={setRowSelectionModel}
+        isRowSelectable={
+          bulkSelectionEligible && user
+            ? (params) => ProjectPolicy.canEdit(user, params.row)
+            : undefined
+        }
         onRowClick={(params: GridRowParams<IProject>) => handleOpenDetails(params.row.id)}
         slots={{
           noRowsOverlay: () => <EmptyContent title="No projects" />,
@@ -669,11 +757,56 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
                 <EmptyContent title={emptyCaption} sx={{ py: 10 }} />
               )
             ) : (
-              <>{view === 'list' ? renderList : renderGrid}</>
+              <>{view === 'list' ? (
+                <>
+                  {bulkSelectionEligible && !notFound && (
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      spacing={1.5}
+                      sx={{ mb: 2 }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        {selectedBulkRowIds.length > 0
+                          ? `${selectedBulkRowIds.length} selected`
+                          : 'Select rows for bulk updates'}
+                        {bulkSkippedByPolicy > 0
+                          ? ` · ${bulkSkippedByPolicy} not editable for you`
+                          : ''}
+                      </Typography>
+                      <Box sx={{ flexGrow: 1 }} />
+                      <Can perm="project:update">
+                        <Button
+                          variant="contained"
+                          size="small"
+                          disabled={
+                            selectedBulkRowIds.length === 0 || bulkEditableIds.length === 0
+                          }
+                          startIcon={<Iconify icon="solar:pen-bold" />}
+                          onClick={handleOpenBulkDialog}
+                        >
+                           update
+                        </Button>
+                      </Can>
+                    </Stack>
+                  )}
+                  {renderList}
+                </>
+              ) : (
+                renderGrid
+              )}</>
             )}
           </>
         )}
       </DashboardContent>
+
+      <ProjectBulkUpdateDialog
+        open={bulkDialog.value}
+        editableProjectIds={bulkEditableIds}
+        projectsSnapshot={projects}
+        onClose={bulkDialog.onFalse}
+        onApplied={handleBulkApplied}
+      />
 
       <ProjectListFilters
         open={openFilters.value}

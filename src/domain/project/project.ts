@@ -48,6 +48,17 @@ export const ProjectSchema = z.object({
   budgetType: ProjectBudgetTypeSchema.optional(),
   customFieldKey: z.string().optional(),
   settings: ProjectSettingsFlagsSchema.optional(),
+  /** ISO timestamp when the project record was created */
+  createdAt: z.string().optional(),
+  /** When the project reached completion (distinct from status alone) */
+  completionDate: z.string().optional(),
+  budgetAmount: z.number().optional(),
+  actualHours: z.number().optional(),
+  actualAmount: z.number().optional(),
+  /** Planned or contractual hours per day */
+  dailyHours: z.number().optional(),
+  /** Task rollup placeholder until wired to workflow */
+  needsReviewTaskCount: z.number().optional(),
 });
 
 export const ProjectListSchema = z.object({

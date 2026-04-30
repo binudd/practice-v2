@@ -11,6 +11,11 @@ import {
   updateProjectApi,
   deleteProjectApi,
 } from 'src/infra/api/project-api';
+import {
+  isBulkPatchEmpty,
+  mergeProjectBulkPatch,
+  type ProjectBulkMergeInput,
+} from 'src/domain/project/bulk-project-patch';
 
 import { useAuthContext, useCurrentRole } from 'src/auth/hooks';
 
@@ -118,6 +123,48 @@ export async function updateProject(id: string, patch: Partial<IProject>) {
       const data = (current as ProjectsData) ?? { projects: [] };
       return {
         projects: data.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+      };
+    },
+    false
+  );
+}
+
+export type { ProjectBulkMergeInput } from 'src/domain/project/bulk-project-patch';
+
+/**
+ * Applies the same bulk merge logic to each target id against `allProjectsSnapshot` (must reflect
+ * current cache rows used for editable filtering), persists via API, then runs one SWR `mutate`.
+ */
+export async function bulkUpdateProjects(
+  allProjectsSnapshot: readonly IProject[],
+  targetIds: readonly string[],
+  input: ProjectBulkMergeInput
+): Promise<void> {
+  const idSet = new Set(targetIds);
+
+  const updates = targetIds
+    .map((id) => {
+      const p = allProjectsSnapshot.find((x) => x.id === id);
+      if (!p) return null;
+      const patch = mergeProjectBulkPatch(p, input);
+      return isBulkPatchEmpty(patch) ? null : { id, patch };
+    })
+    .filter((x): x is { id: string; patch: Partial<IProject> } => !!x);
+
+  if (!updates.length) return;
+
+  await Promise.all(updates.map(({ id, patch }) => updateProjectApi(id, patch)));
+
+  await mutate(
+    PROJECT_ENDPOINT,
+    (current) => {
+      const data = ((current as ProjectsData) ?? { projects: [] }).projects;
+      return {
+        projects: data.map((p) => {
+          if (!idSet.has(p.id)) return p;
+          const patch = mergeProjectBulkPatch(p, input);
+          return isBulkPatchEmpty(patch) ? p : { ...p, ...patch };
+        }),
       };
     },
     false

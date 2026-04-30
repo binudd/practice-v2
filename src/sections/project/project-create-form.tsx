@@ -41,10 +41,14 @@ import {
   PROJECT_PRIORITY_OPTIONS,
   ProjectPriorityKanbanIcon,
 } from './project-priority-kanban-style';
+import {
+  DEPARTMENT_OPTIONS,
+  projectUserNameById,
+  PROJECT_USER_SELECT_OPTIONS,
+  resolveProjectUserIdInPickerOptions,
+} from './project-field-options';
 
 // ----------------------------------------------------------------------
-
-const USER_OPTIONS = _userList.slice(0, 16).map((u) => ({ value: u.id, label: u.name }));
 
 const TEMPLATE_OPTIONS = [
   { value: '', label: 'None' },
@@ -63,12 +67,6 @@ const GROUP_OPTIONS = [
   { value: '', label: 'None' },
   { value: 'alpha', label: 'Alpha squad' },
   { value: 'platform', label: 'Platform' },
-];
-
-const DEPARTMENT_OPTIONS = [
-  { value: 'dt-dev', label: 'DT-Dev' },
-  { value: 'dt-ops', label: 'DT-Ops' },
-  { value: 'product', label: 'Product' },
 ];
 
 const CLIENT_COMPANY_OPTIONS = Array.from(new Set(_userList.map((u) => u.company))).map(
@@ -145,22 +143,12 @@ function FormSection({ title, children }: { title: string; children: React.React
   );
 }
 
-function userNameById(id: string) {
-  return _userList.find((u) => u.id === id)?.name ?? '';
-}
-
-function resolveUserIdInOptions(id: string | undefined, fallback: string): string {
-  if (id && USER_OPTIONS.some((u) => u.value === id)) return id;
-  if (fallback && USER_OPTIONS.some((u) => u.value === fallback)) return fallback;
-  return USER_OPTIONS[0]?.value ?? '';
-}
-
 export function projectToFormValues(
   project: IProject,
   defaultUserId: string
 ): ProjectCreateFormValues {
-  const ownerFallback = resolveUserIdInOptions(project.ownerId, defaultUserId);
-  const leaderId = resolveUserIdInOptions(project.projectLeaderId, ownerFallback);
+  const ownerFallback = resolveProjectUserIdInPickerOptions(project.ownerId, defaultUserId);
+  const leaderId = resolveProjectUserIdInPickerOptions(project.projectLeaderId, ownerFallback);
 
   const priority: IProjectPriority = PROJECT_PRIORITY_OPTIONS.includes(project.priority)
     ? project.priority
@@ -258,7 +246,7 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
   const router = useRouter();
   const { user } = useAuthContext();
 
-  const defaultUserId = user?.id ?? USER_OPTIONS[0]?.value ?? '';
+  const defaultUserId = user?.id ?? PROJECT_USER_SELECT_OPTIONS[0]?.value ?? '';
 
   const browseAfterSaveHref =
     mode === 'edit' ? paths.dashboard.project.list
@@ -303,14 +291,14 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
       startDate: data.startDate,
       endDate: data.endDate,
       ownerId: data.ownerId,
-      ownerName: userNameById(data.ownerId),
+      ownerName: projectUserNameById(data.ownerId),
       description: data.description.trim() || undefined,
       priority: data.priority,
       isTemplate: Boolean(creationPreset === 'template' || data.templateId),
       referenceNo: data.referenceNo.trim() || undefined,
       templateId: data.templateId || undefined,
       projectLeaderId: data.projectLeaderId,
-      projectLeaderName: userNameById(data.projectLeaderId),
+      projectLeaderName: projectUserNameById(data.projectLeaderId),
       category: data.category,
       group: data.group || undefined,
       department: data.department || undefined,
@@ -342,6 +330,7 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
       completedTasks: 0,
       isFavorite: false,
       isRecurring: Boolean(creationPreset === 'recurring'),
+      createdAt: dayjs().toISOString(),
     };
 
     try {
@@ -415,7 +404,7 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
               </Grid>
               <Grid xs={12} md={6}>
                 <Field.Select name="projectLeaderId" label="Project leader *">
-                  {USER_OPTIONS.map((opt) => (
+                  {PROJECT_USER_SELECT_OPTIONS.map((opt) => (
                     <MenuItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </MenuItem>
@@ -424,7 +413,7 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
               </Grid>
               <Grid xs={12} md={6}>
                 <Field.Select name="ownerId" label="Project owner *">
-                  {USER_OPTIONS.map((opt) => (
+                  {PROJECT_USER_SELECT_OPTIONS.map((opt) => (
                     <MenuItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </MenuItem>
