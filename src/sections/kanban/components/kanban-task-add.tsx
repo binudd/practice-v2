@@ -1,44 +1,33 @@
 import type { IKanbanTask } from 'src/types/kanban';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 import Paper from '@mui/material/Paper';
 import FormHelperText from '@mui/material/FormHelperText';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 import InputBase, { inputBaseClasses } from '@mui/material/InputBase';
 
-import { uuidv4 } from 'src/utils/uuidv4';
-
-import { _mock } from 'src/_mock';
 import { stylesMode } from 'src/theme/styles';
+import { buildNewKanbanTask } from 'src/domain/kanban/new-task-defaults';
 
 // ----------------------------------------------------------------------
 
 type Props = {
   status: string;
+  reporter: IKanbanTask['reporter'];
   openAddTask: boolean;
   onCloseAddTask: () => void;
   onAddTask: (task: IKanbanTask) => void;
 };
 
-export function KanbanTaskAdd({ status, openAddTask, onAddTask, onCloseAddTask }: Props) {
+export function KanbanTaskAdd({
+  status,
+  reporter,
+  openAddTask,
+  onAddTask,
+  onCloseAddTask,
+}: Props) {
   const [taskName, setTaskName] = useState('');
-
-  const defaultTask: IKanbanTask = useMemo(
-    () => ({
-      id: uuidv4(),
-      status,
-      name: taskName.trim() ? taskName : 'Untitled',
-      priority: 'medium',
-      attachments: [],
-      labels: [],
-      comments: [],
-      assignee: [],
-      due: [null, null],
-      reporter: { id: _mock.id(16), name: _mock.fullName(16), avatarUrl: _mock.image.avatar(16) },
-    }),
-    [status, taskName]
-  );
 
   const handleChangeName = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setTaskName(event.target.value);
@@ -47,11 +36,15 @@ export function KanbanTaskAdd({ status, openAddTask, onAddTask, onCloseAddTask }
   const handleKeyUpAddTask = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (event.key === 'Enter') {
-        onAddTask(defaultTask);
+        const trimmed = taskName.trim();
+        onAddTask({
+          ...buildNewKanbanTask({ status, reporter }),
+          name: trimmed || 'Untitled',
+        });
         setTaskName('');
       }
     },
-    [defaultTask, onAddTask]
+    [onAddTask, reporter, status, taskName]
   );
 
   const handleCancel = useCallback(() => {

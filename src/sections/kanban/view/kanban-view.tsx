@@ -40,9 +40,11 @@ import {
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Menu from '@mui/material/Menu';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
+import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import ToggleButton from '@mui/material/ToggleButton';
 import { DataGrid, gridClasses } from '@mui/x-data-grid';
@@ -55,11 +57,13 @@ import { fDate } from 'src/utils/format-time';
 import { hideScrollY } from 'src/theme/styles';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { useUIPreferencesStore } from 'src/store/ui-preferences-store';
+import { buildNewKanbanTask } from 'src/domain/kanban/new-task-defaults';
 import {
   moveTask,
   deleteTask,
   moveColumn,
   updateTask,
+  createTask,
   useGetBoard,
 } from 'src/actions/kanban';
 
@@ -81,6 +85,7 @@ import { KanbanColumn } from '../column/kanban-column';
 import { KanbanDetails } from '../details/kanban-details';
 import { KanbanTaskItem } from '../item/kanban-task-item';
 import { KanbanColumnAdd } from '../column/kanban-column-add';
+import { reporterFromAuthUser } from '../utils/reporter-from-auth';
 import { KanbanColumnSkeleton } from '../components/kanban-skeleton';
 import { KanbanDragOverlay } from '../components/kanban-drag-overlay';
 import { KanbanTaskBulkUpdateDialog } from '../kanban-task-bulk-update-dialog';
@@ -133,6 +138,8 @@ export function KanbanView({
 
   const { user } = useAuthContext();
 
+  const taskReporter = useMemo(() => reporterFromAuthUser(user), [user]);
+
   const bulkPermission = Boolean(user && hasPermission(user.role, 'task:update'));
   const bulkSelectionEligible =
     bulkPermission && layoutMode === 'list' && !boardEmpty && !boardLoading;
@@ -169,6 +176,26 @@ export function KanbanView({
       }
     | null
   >(null);
+
+  const [newTaskMenuAnchorEl, setNewTaskMenuAnchorEl] = useState<HTMLElement | null>(null);
+
+  const handleOpenNewTaskMenu = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    setNewTaskMenuAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleCloseNewTaskMenu = useCallback(() => {
+    setNewTaskMenuAnchorEl(null);
+  }, []);
+
+  const handlePickColumnNewTask = useCallback(
+    (columnId: UniqueIdentifier, columnName: string) => {
+      const task = buildNewKanbanTask({ status: columnName, reporter: taskReporter });
+      createTask(columnId, task, projectId);
+      setDetailTaskCtx({ columnId, task });
+      handleCloseNewTaskMenu();
+    },
+    [handleCloseNewTaskMenu, projectId, taskReporter]
+  );
 
   const columnIds = board.columns.map((column) => column.id);
 
@@ -499,6 +526,7 @@ export function KanbanView({
                   column={column}
                   tasks={board.tasks[column.id]}
                   boardProjectId={projectId}
+                  taskReporter={taskReporter}
                 >
                   <SortableContext
                     items={board.tasks[column.id]}
@@ -508,9 +536,13 @@ export function KanbanView({
                       <KanbanTaskItem
                         task={task}
                         key={task.id}
-                        columnId={column.id}
-                        boardProjectId={projectId}
                         disabled={isSortingContainer}
+                        highlightOpen={
+                          detailTaskCtx !== null &&
+                          detailTaskCtx.task.id === task.id &&
+                          detailTaskCtx.columnId === column.id
+                        }
+                        onOpen={() => setDetailTaskCtx({ task, columnId: column.id })}
                       />
                     ))}
                   </SortableContext>
@@ -573,23 +605,56 @@ export function KanbanView({
         rowGap={1}
         sx={{ mb: 2 }}
       >
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={layoutMode}
-          onChange={handleChangeLayoutMode}
-        >
-          <ToggleButton value="board" aria-label="Board columns">
-            <Tooltip title="Board">
-              <Iconify icon="mingcute:dot-grid-fill" />
-            </Tooltip>
-          </ToggleButton>
-          <ToggleButton value="list" aria-label="Task list">
-            <Tooltip title="List">
-              <Iconify icon="solar:list-bold" />
-            </Tooltip>
-          </ToggleButton>
-        </ToggleButtonGroup>
+        <Stack direction="row" alignItems="center" flexWrap="wrap" spacing={2}>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={layoutMode}
+            onChange={handleChangeLayoutMode}
+          >
+            <ToggleButton value="board" aria-label="Board columns">
+              <Tooltip title="Board">
+                <Iconify icon="mingcute:dot-grid-fill" />
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton value="list" aria-label="Task list">
+              <Tooltip title="List">
+                <Iconify icon="solar:list-bold" />
+              </Tooltip>
+            </ToggleButton>
+          </ToggleButtonGroup>
+
+          {bulkPermission && board.columns.length > 0 ? (
+            <>
+              <Can perm="task:update">
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<Iconify icon="mingcute:add-line" />}
+                  onClick={handleOpenNewTaskMenu}
+                >
+                  New task
+                </Button>
+              </Can>
+              <Menu
+                anchorEl={newTaskMenuAnchorEl}
+                open={Boolean(newTaskMenuAnchorEl)}
+                onClose={handleCloseNewTaskMenu}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+              >
+                {board.columns.map((col) => (
+                  <MenuItem
+                    key={String(col.id)}
+                    onClick={() => handlePickColumnNewTask(col.id, col.name)}
+                  >
+                    {col.name}
+                  </MenuItem>
+                ))}
+              </Menu>
+            </>
+          ) : null}
+        </Stack>
 
         {bulkSelectionEligible ? (
           <Stack
@@ -649,6 +714,7 @@ export function KanbanView({
     <>
       {detailTaskCtx !== null ? (
         <KanbanDetails
+          key={String(detailTaskCtx.task.id)}
           task={detailTaskCtx.task}
           openDetails={detailTaskCtx !== null}
           onCloseDetails={() => setDetailTaskCtx(null)}
