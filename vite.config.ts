@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react-swc';
 
 // ----------------------------------------------------------------------
 
-const PORT = 3000;
+const PORT = 8081;
 
 const env = loadEnv('all', process.cwd());
 
@@ -15,8 +15,13 @@ export default defineConfig({
     react(),
     checker({
       typescript: true,
-      eslint: false,
-      overlay: false,
+      eslint: {
+        lintCommand: 'eslint "./src/**/*.{js,jsx,ts,tsx}"',
+      },
+      overlay: {
+        position: 'tl',
+        initialIsOpen: false,
+      },
     }),
   ],
   resolve: {

@@ -1,5 +1,5 @@
 import type {
-  RoleItem,
+  PermissionAssignee,
   MenuCrudPermissions,
   MenuPermissionListItem,
   MenuPermissionMatrixState,
@@ -14,7 +14,7 @@ import Tabs from '@mui/material/Tabs';
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
-import LinearProgress from '@mui/material/LinearProgress';
+import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import Checkbox from '@mui/material/Checkbox';
@@ -24,7 +24,7 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
-import MenuItem from '@mui/material/MenuItem';
+import Autocomplete from '@mui/material/Autocomplete';
 import TableContainer from '@mui/material/TableContainer';
 
 import { varAlpha } from 'src/theme/styles';
@@ -33,9 +33,6 @@ import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
-import { ConfirmDialog } from 'src/components/custom-dialog';
-
-import { useBoolean } from 'src/hooks/use-boolean';
 
 import { emptyMenuCrudPermissions } from 'src/types/menu-permission';
 
@@ -101,32 +98,21 @@ function applyPermissionToggle(
 
 export type MenuPermissionsMatrixProps = {
   menus: MenuPermissionListItem[];
-  roles?: RoleItem[];
+  users?: PermissionAssignee[];
   initialMatrix?: MenuPermissionMatrixState;
-  loading?: boolean;
-  roleLoading?: boolean;
-  onFetchRoleDetails?: (roleID: number) => Promise<any>;
   onSave?: (payload: PermissionAssignmentPayload) => void | Promise<void>;
-  onDelete?: (roleID: number) => void | Promise<void>;
 };
 
 export function MenuPermissionsMatrix({
   menus,
-  roles = [],
+  users = [],
   initialMatrix,
-  loading,
-  roleLoading,
-  onFetchRoleDetails,
   onSave,
-  onDelete,
 }: MenuPermissionsMatrixProps) {
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
-  const [selectedRoleID, setSelectedRoleID] = useState<number | 'addNew' | ''>('');
-  const [newRoleName, setNewRoleName] = useState('');
-  const [roleDescription, setRoleDescription] = useState('');
+  const [roleName, setRoleName] = useState('');
+  const [assignee, setAssignee] = useState<PermissionAssignee | null>(null);
   const [matrix, setMatrix] = useState(() => buildMatrixFromMenus(menus, initialMatrix));
-
-  const confirmDelete = useBoolean();
 
   useEffect(() => {
     setMatrix((prev) => {
@@ -193,22 +179,19 @@ export function MenuPermissionsMatrix({
   }, [menus]);
 
   const handleSave = useCallback(async () => {
-    if (selectedRoleID === '') {
-      toast.warning('Select a role');
+    const trimmedRole = roleName.trim();
+    if (!trimmedRole) {
+      toast.warning('Enter a role name');
       return;
     }
-
-    if (selectedRoleID === 'addNew' && !newRoleName.trim()) {
-      toast.warning('Enter a name for the new role');
+    if (!assignee) {
+      toast.warning('Select a user');
       return;
     }
-
-    const selectedRole = roles.find((r) => r.roleID === selectedRoleID);
 
     const payload: PermissionAssignmentPayload = {
-      roleID: selectedRoleID === 'addNew' ? 0 : Number(selectedRoleID),
-      roleName: selectedRoleID === 'addNew' ? newRoleName.trim() : (selectedRole?.roleName || ''),
-      roleDescription,
+      roleName: trimmedRole,
+      user: assignee,
       matrix,
     };
 
@@ -216,11 +199,6 @@ export function MenuPermissionsMatrix({
       try {
         await onSave(payload);
         toast.success('Permissions saved');
-        if (selectedRoleID === 'addNew') {
-          setSelectedRoleID('');
-          setNewRoleName('');
-          setRoleDescription('');
-        }
       } catch {
         toast.error('Could not save permissions');
       }
@@ -228,50 +206,12 @@ export function MenuPermissionsMatrix({
       console.info('Permission assignment payload', payload);
       toast.info('Connect onSave to persist — payload logged to console');
     }
-  }, [matrix, onSave, roles, roleDescription, selectedRoleID, newRoleName]);
-
-  const handleDelete = useCallback(async () => {
-    if (selectedRoleID === '' || selectedRoleID === 'addNew') return;
-
-    if (onDelete) {
-      try {
-        await onDelete(Number(selectedRoleID));
-        toast.success('Role deleted');
-        setSelectedRoleID('');
-        setRoleDescription('');
-        setMatrix(buildMatrixFromMenus(menus));
-        confirmDelete.onFalse();
-      } catch (error) {
-        toast.error('Could not delete role');
-      }
-    }
-  }, [onDelete, selectedRoleID, menus, confirmDelete]);
+  }, [assignee, matrix, onSave, roleName]);
 
   const notFound = filteredMenus.length === 0;
 
-  if (loading) {
-    return (
-      <Card sx={{ p: 5, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
-          Loading permissions...
-        </Typography>
-      </Card>
-    );
-  }
-
   return (
-    <Card sx={{ position: 'relative' }}>
-      {roleLoading && (
-        <LinearProgress
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 10,
-          }}
-        />
-      )}
+    <Card>
       <Stack
         spacing={2.5}
         direction={{ xs: 'column', sm: 'row' }}
@@ -287,16 +227,6 @@ export function MenuPermissionsMatrix({
         </Stack>
 
         <Stack direction="row" spacing={1} flexShrink={0}>
-          {selectedRoleID !== '' && selectedRoleID !== 'addNew' && (
-            <Button
-              color="error"
-              variant="outlined"
-              startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
-              onClick={confirmDelete.onTrue}
-            >
-              Delete
-            </Button>
-          )}
           <Button color="inherit" variant="outlined" onClick={handleReset}>
             Reset
           </Button>
@@ -312,76 +242,41 @@ export function MenuPermissionsMatrix({
         sx={{ px: 2.5, pt: 2.5 }}
       >
         <TextField
-          select
           fullWidth
-          label="Select role"
-          value={selectedRoleID}
-          onChange={(e) => {
-            const val = e.target.value;
-            setSelectedRoleID(val as any);
-            if (val === 'addNew') {
-              setNewRoleName('');
-              setRoleDescription('');
-              setMatrix(buildMatrixFromMenus(menus));
-            } else if (val !== '') {
-              const role = roles.find((r) => r.roleID === Number(val));
-              if (role) {
-                setRoleDescription(role.roleDescription || '');
-                if (onFetchRoleDetails) {
-                  onFetchRoleDetails(role.roleID).then((data) => {
-                    if (data?.roleDetails) {
-                      const newMatrix = buildMatrixFromMenus(menus);
-                      data.roleDetails.forEach((detail: any) => {
-                        if (newMatrix[detail.menuID]) {
-                          newMatrix[detail.menuID] = {
-                            canAdd: detail.canAdd,
-                            canView: detail.canView,
-                            canEdit: detail.canEdit,
-                            canDelete: detail.canDelete,
-                          };
-                        }
-                      });
-                      setMatrix(newMatrix);
-                    }
-                  });
-                }
-              }
-            } else {
-              setRoleDescription('');
-              setMatrix(buildMatrixFromMenus(menus));
-            }
-          }}
-          SelectProps={{ native: false }}
-        >
-          <MenuItem value="">
-            <em>None</em>
-          </MenuItem>
-          {roles.map((option) => (
-            <MenuItem key={option.roleID} value={option.roleID}>
-              {option.roleName}
-            </MenuItem>
-          ))}
-          <MenuItem value="addNew" sx={{ fontStyle: 'italic', color: 'primary.main' }}>
-            + Add new role...
-          </MenuItem>
-        </TextField>
+          label="Role name"
+          placeholder="e.g. Project coordinator"
+          value={roleName}
+          onChange={(e) => setRoleName(e.target.value)}
+        />
 
-        {selectedRoleID === 'addNew' && (
-          <TextField
-            fullWidth
-            label="New role name"
-            placeholder="e.g. Project Manager"
-            value={newRoleName}
-            onChange={(e) => setNewRoleName(e.target.value)}
-          />
-        )}
-
-        <TextField
+        <Autocomplete
           fullWidth
-          label="Role description"
-          placeholder="Enter description..."
-          value={roleDescription}
-          onChange={(e) => setRoleDescription(e.target.value)}
+          options={users}
+          value={assignee}
+          onChange={(_, v) => setAssignee(v)}
+          getOptionLabel={(option) => option.name}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+          renderInput={(params) => (
+            <TextField {...params} label="User" placeholder="Search users..." />
+          )}
+          renderOption={(props, option) => (
+            <li {...props} key={option.id}>
+              <Avatar
+                alt={option.name}
+                src={option.avatarUrl}
+                sx={{ width: 32, height: 32, mr: 1.5, flexShrink: 0 }}
+              />
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography variant="subtitle2" noWrap>
+                  {option.name}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+                  {option.email} · {option.role}
+                </Typography>
+              </Box>
+            </li>
+          )}
+          noOptionsText="No users found"
         />
       </Stack>
 
@@ -579,18 +474,6 @@ export function MenuPermissionsMatrix({
           </Table>
         </TableContainer>
       </Box>
-
-      <ConfirmDialog
-        open={confirmDelete.value}
-        onClose={confirmDelete.onFalse}
-        title="Delete Role"
-        content="Are you sure you want to delete this role? This action cannot be undone."
-        action={
-          <Button variant="contained" color="error" onClick={handleDelete}>
-            Delete
-          </Button>
-        }
-      />
     </Card>
   );
 }

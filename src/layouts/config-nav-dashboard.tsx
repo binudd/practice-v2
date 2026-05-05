@@ -1,5 +1,4 @@
 import type { UserRole } from 'src/auth/roles';
-import type { NavSectionProps } from 'src/components/nav-section';
 
 import { paths } from 'src/routes/paths';
 
@@ -45,14 +44,14 @@ const TIMESHEET_USERS: UserRole[] = ['admin', 'manager', 'member'];
 
 // ----------------------------------------------------------------------
 
-export const navData: NavSectionProps['data'] = [
+export const navData = [
   /**
    * Overview
    */
   {
     subheader: 'Overview',
     items: [
-      { title: 'Dashboard', path: paths.dashboard.overview, icon: ICONS.dashboard, menuName: 'Dashboard' },
+      { title: 'Dashboard', path: paths.dashboard.overview, icon: ICONS.dashboard, roles: ALL },
     ],
   },
   /**
@@ -65,43 +64,27 @@ export const navData: NavSectionProps['data'] = [
         title: 'Projects',
         path: paths.dashboard.project.list,
         icon: ICONS.folder,
-        menuName: 'Project',
-        children: [
-          { title: 'List', path: paths.dashboard.project.list, menuName: 'Project', icon: SUB.list },
-          {
-            title: 'Templates',
-            path: paths.dashboard.project.templates.root,
-            menuName: 'Project',
-            icon: <Iconify icon="solar:copy-bold" width={22} />,
-          },
-          {
-            title: 'Recurring',
-            path: paths.dashboard.project.recurringProjects.root,
-            menuName: 'Project',
-            icon: <Iconify icon="solar:calendar-bold" width={22} />,
-          },
-          { title: 'New', path: paths.dashboard.project.new, menuName: 'Project', permissionAction: 'canAdd', icon: SUB.add },
-        ],
+        roles: ALL,
       },
       {
         title: 'My Work',
         path: paths.dashboard.kanban,
         icon: ICONS.kanban,
-        menuName: 'My Work',
+        roles: WORKSPACE,
       },
       {
         title: 'Calendar',
         path: paths.dashboard.calendar,
         icon: ICONS.calendar,
-        menuName: 'Calendar',
+        roles: WORKSPACE,
       },
       {
         title: 'Timesheet',
         path: paths.dashboard.timesheet,
         icon: ICONS.label,
-        menuName: 'Timesheet',
+        roles: TIMESHEET_USERS,
       },
-      { title: 'Files', path: paths.dashboard.files, icon: ICONS.file, menuName: 'File Manager' },
+      { title: 'Files', path: paths.dashboard.files, icon: ICONS.file, roles: ALL },
     ],
   },
   /**
@@ -110,8 +93,8 @@ export const navData: NavSectionProps['data'] = [
   {
     subheader: 'Collaboration',
     items: [
-      { title: 'Chat', path: paths.dashboard.chat, icon: ICONS.chat, menuName: 'Discussions' },
-      { title: 'Mail', path: paths.dashboard.mail, icon: ICONS.mail, menuName: 'Discussions' },
+      { title: 'Chat', path: paths.dashboard.chat, icon: ICONS.chat, roles: WORKSPACE },
+      { title: 'Mail', path: paths.dashboard.mail, icon: ICONS.mail, roles: WORKSPACE },
     ],
   },
   /**
@@ -124,10 +107,10 @@ export const navData: NavSectionProps['data'] = [
         title: 'Users',
         path: paths.dashboard.user.root,
         icon: ICONS.user,
-        menuName: 'People',
+        roles: ADMIN_ONLY,
         children: [
-          { title: 'List', path: paths.dashboard.user.list, menuName: 'People', icon: SUB.list },
-          { title: 'New', path: paths.dashboard.user.new, menuName: 'People', permissionAction: 'canAdd', icon: SUB.add },
+          { title: 'List', path: paths.dashboard.user.list, roles: ADMIN_ONLY, icon: SUB.list },
+          { title: 'New', path: paths.dashboard.user.new, roles: ADMIN_ONLY, icon: SUB.add },
         ],
       },
     ],
@@ -142,15 +125,15 @@ export const navData: NavSectionProps['data'] = [
         title: 'Invoices',
         path: paths.dashboard.invoice.root,
         icon: ICONS.invoice,
-        menuName: 'Invoice',
+        roles: INVOICE_VIEWERS,
         children: [
           {
             title: 'List',
             path: paths.dashboard.invoice.list,
-            menuName: 'Invoice',
+            roles: INVOICE_VIEWERS,
             icon: SUB.list,
           },
-          { title: 'New', path: paths.dashboard.invoice.new, menuName: 'Invoice', permissionAction: 'canAdd', icon: SUB.add },
+          { title: 'New', path: paths.dashboard.invoice.new, roles: ADMIN_ONLY, icon: SUB.add },
         ],
       },
     ],

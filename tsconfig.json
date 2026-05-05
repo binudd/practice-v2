@@ -24,10 +24,6 @@
     "useUnknownInCatchVariables": false,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["vite/client"],
-    "paths": {
-      "src/*": ["src/*"]
-    }
   },
   "include": [
     "**/*.ts",

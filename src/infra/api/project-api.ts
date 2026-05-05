@@ -11,61 +11,34 @@ import { parseProjectList } from 'src/domain/project';
 // The action layer (src/actions/project.ts) calls into this module so swapping
 // backends is a one-file change.
 
-import { useUserStore } from 'src/store';
-import { mapProjectFromApi, mapProjectToApi } from 'src/domain/project/project-mapper';
-
-// ----------------------------------------------------------------------
-
-const USE_SERVER = true; // Switching to server as per user request
-
-// ----------------------------------------------------------------------
-
-function getTenantId() {
-  return useUserStore.getState().user?.tenantID || 1;
-}
-
-function getUserRoleType() {
-  return useUserStore.getState().user?.userRoleType || 1;
-}
+const USE_SERVER = false;
 
 // ----------------------------------------------------------------------
 
 export async function listProjects(): Promise<IProject[]> {
   if (USE_SERVER) {
-    const res = await axios.get(endpoints.project.list);
-    // Assuming the list response also needs mapping if it follows the same PascalCase
-    return (res.data || []).map(mapProjectFromApi);
+    const res = await axios.get(endpoints.project);
+    return parseProjectList(res.data);
   }
   return parseProjectList({ projects: _projects });
 }
 
-export async function getProjectApi(id: string): Promise<IProject> {
-  const res = await axios.get(endpoints.project.get(id));
-  return mapProjectFromApi(res.data);
-}
-
 export async function createProjectApi(input: IProject): Promise<IProject> {
   if (USE_SERVER) {
-    const payload = mapProjectToApi(input);
-    const res = await axios.post(endpoints.project.save, payload);
-    return mapProjectFromApi(res.data);
+    const res = await axios.post(endpoints.project, input);
+    return res.data;
   }
   return input;
 }
 
 export async function updateProjectApi(id: string, patch: Partial<IProject>): Promise<void> {
   if (USE_SERVER) {
-    const payload = mapProjectToApi({ ...patch, id });
-    await axios.post(endpoints.project.save, payload); // Save often handles both create and update
+    await axios.patch(`${endpoints.project}/${id}`, patch);
   }
 }
 
 export async function deleteProjectApi(id: string): Promise<void> {
   if (USE_SERVER) {
-    await axios.post(endpoints.project.delete, { projectID: Number(id) });
+    await axios.delete(`${endpoints.project}/${id}`);
   }
 }
-
-// ----------------------------------------------------------------------
-// Lookups moved to lookup-api.ts
-

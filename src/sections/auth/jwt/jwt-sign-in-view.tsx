@@ -28,7 +28,10 @@ import { signInWithPassword } from 'src/auth/context/jwt';
 export type SignInSchemaType = zod.infer<typeof SignInSchema>;
 
 export const SignInSchema = zod.object({
-  userName: zod.string().min(1, { message: 'User name is required!' }),
+  email: zod
+    .string()
+    .min(1, { message: 'Email is required!' })
+    .email({ message: 'Email must be a valid email address!' }),
   password: zod
     .string()
     .min(1, { message: 'Password is required!' })
@@ -47,8 +50,8 @@ export function JwtSignInView() {
   const password = useBoolean();
 
   const defaultValues = {
-    userName: '',
-    password: '',
+    email: 'demo@minimals.cc',
+    password: '@demo1',
   };
 
   const methods = useForm<SignInSchemaType>({
@@ -61,12 +64,12 @@ export function JwtSignInView() {
     formState: { isSubmitting },
   } = methods;
 
-    const onSubmit = handleSubmit(async (data) => {
+  const onSubmit = handleSubmit(async (data) => {
     try {
-      await signInWithPassword({ userName: data.userName, password: data.password });
+      await signInWithPassword({ email: data.email, password: data.password });
       await checkUserSession?.();
 
-      router.push(paths.dashboard.root);
+      router.refresh();
     } catch (error) {
       console.error(error);
       setErrorMsg(error instanceof Error ? error.message : error);
@@ -91,7 +94,7 @@ export function JwtSignInView() {
 
   const renderForm = (
     <Stack spacing={3}>
-      <Field.Text name="userName" label="User Name" InputLabelProps={{ shrink: true }} />
+      <Field.Text name="email" label="Email address" InputLabelProps={{ shrink: true }} />
 
       <Stack spacing={1.5}>
         <Link
@@ -140,7 +143,11 @@ export function JwtSignInView() {
     <>
       {renderHead}
 
-
+      <Alert severity="info" sx={{ mb: 3 }}>
+        Use <strong>{defaultValues.email}</strong>
+        {' with password '}
+        <strong>{defaultValues.password}</strong>
+      </Alert>
 
       {!!errorMsg && (
         <Alert severity="error" sx={{ mb: 3 }}>

@@ -1,9 +1,12 @@
 import type { IProject } from 'src/domain/project';
 
-import { useMemo, useEffect } from 'react';
-import { useProjectStore } from 'src/store/project-store';
+import { useMemo } from 'react';
+import useSWR, { mutate } from 'swr';
+
+import { endpoints } from 'src/utils/axios';
 
 import {
+  listProjects,
   createProjectApi,
   updateProjectApi,
   deleteProjectApi,
@@ -17,6 +20,27 @@ import {
 import { useAuthContext, useCurrentRole } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
+// Actions = SWR surface. All transport concerns live in `src/infra/api/*`.
+// When the backend is ready, flip USE_SERVER in project-api.ts - no changes
+// here are required.
+
+const PROJECT_ENDPOINT = endpoints.project;
+
+const swrFetcher = async (): Promise<{ projects: IProject[] }> => ({
+  projects: await listProjects(),
+});
+
+const swrOptions = {
+  revalidateIfStale: false,
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+};
+
+// ----------------------------------------------------------------------
+
+type ProjectsData = {
+  projects: IProject[];
+};
 
 type UseGetProjectsOptions = {
   /**
@@ -26,27 +50,22 @@ type UseGetProjectsOptions = {
    *     - other roles   -> projects where user is owner or a member
    */
   scope?: 'all' | 'mine';
-  searchText?: string;
 };
 
 export function useGetProjects(options: UseGetProjectsOptions = {}) {
-  const { scope = 'all', searchText = '' } = options;
+  const { scope = 'all' } = options;
 
   const { user } = useAuthContext();
   const role = useCurrentRole();
 
-  const { projects: storeProjects, isLoading, error, hasFetched, fetchProjects } = useProjectStore();
-
-  useEffect(() => {
-    // Only fetch if not fetched yet, or if searchText changed (if we want backend search)
-    // The user requested not fetching frequently, but we pass searchText to API
-    if (!hasFetched || searchText) {
-      fetchProjects(undefined, searchText);
-    }
-  }, [fetchProjects, hasFetched, searchText]);
+  const { data, isLoading, error, isValidating } = useSWR<ProjectsData>(
+    PROJECT_ENDPOINT,
+    swrFetcher,
+    swrOptions
+  );
 
   return useMemo(() => {
-    const all = storeProjects;
+    const all = data?.projects ?? [];
 
     const projects =
       scope === 'mine' && user?.id
@@ -60,10 +79,10 @@ export function useGetProjects(options: UseGetProjectsOptions = {}) {
       projects,
       projectsLoading: isLoading,
       projectsError: error,
-      projectsValidating: isLoading, // matching old return signature
+      projectsValidating: isValidating,
       projectsEmpty: !isLoading && projects.length === 0,
     };
-  }, [storeProjects, error, isLoading, role, scope, user?.id]);
+  }, [data?.projects, error, isLoading, isValidating, role, scope, user?.id]);
 }
 
 // ----------------------------------------------------------------------
@@ -86,16 +105,28 @@ export function useGetProject(id: string | undefined) {
 
 export async function createProject(input: IProject) {
   const saved = await createProjectApi(input);
-  useProjectStore.setState((state) => ({
-    projects: [saved, ...state.projects],
-  }));
+  await mutate(
+    PROJECT_ENDPOINT,
+    (current) => {
+      const data = (current as ProjectsData) ?? { projects: [] };
+      return { projects: [saved, ...data.projects] };
+    },
+    false
+  );
 }
 
 export async function updateProject(id: string, patch: Partial<IProject>) {
   await updateProjectApi(id, patch);
-  useProjectStore.setState((state) => ({
-    projects: state.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-  }));
+  await mutate(
+    PROJECT_ENDPOINT,
+    (current) => {
+      const data = (current as ProjectsData) ?? { projects: [] };
+      return {
+        projects: data.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+      };
+    },
+    false
+  );
 }
 
 export type { ProjectBulkMergeInput } from 'src/domain/project/bulk-project-patch';
@@ -124,18 +155,30 @@ export async function bulkUpdateProjects(
 
   await Promise.all(updates.map(({ id, patch }) => updateProjectApi(id, patch)));
 
-  useProjectStore.setState((state) => ({
-    projects: state.projects.map((p) => {
-      if (!idSet.has(p.id)) return p;
-      const patch = mergeProjectBulkPatch(p, input);
-      return isBulkPatchEmpty(patch) ? p : { ...p, ...patch };
-    }),
-  }));
+  await mutate(
+    PROJECT_ENDPOINT,
+    (current) => {
+      const data = ((current as ProjectsData) ?? { projects: [] }).projects;
+      return {
+        projects: data.map((p) => {
+          if (!idSet.has(p.id)) return p;
+          const patch = mergeProjectBulkPatch(p, input);
+          return isBulkPatchEmpty(patch) ? p : { ...p, ...patch };
+        }),
+      };
+    },
+    false
+  );
 }
 
 export async function deleteProject(id: string) {
   await deleteProjectApi(id);
-  useProjectStore.setState((state) => ({
-    projects: state.projects.filter((p) => p.id !== id),
-  }));
+  await mutate(
+    PROJECT_ENDPOINT,
+    (current) => {
+      const data = (current as ProjectsData) ?? { projects: [] };
+      return { projects: data.projects.filter((p) => p.id !== id) };
+    },
+    false
+  );
 }

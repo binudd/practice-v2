@@ -12,7 +12,7 @@ export function jwtDecode(token: string) {
 
     const parts = token.split('.');
     if (parts.length < 2) {
-      return null; // Not a JWT
+      throw new Error('Invalid token!');
     }
 
     const base64Url = parts[1];
@@ -22,7 +22,7 @@ export function jwtDecode(token: string) {
     return decoded;
   } catch (error) {
     console.error('Error decoding token:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -37,8 +37,7 @@ export function isValidToken(accessToken: string) {
     const decoded = jwtDecode(accessToken);
 
     if (!decoded || !('exp' in decoded)) {
-      // If it's not a standard JWT or lacks an expiration, we assume it's valid if it exists.
-      return true;
+      return false;
     }
 
     const currentTime = Date.now() / 1000;
@@ -46,7 +45,7 @@ export function isValidToken(accessToken: string) {
     return decoded.exp > currentTime;
   } catch (error) {
     console.error('Error during token validation:', error);
-    return true; // Fallback to true if it's a non-standard token
+    return false;
   }
 }
 
@@ -77,10 +76,12 @@ export async function setSession(accessToken: string | null) {
 
       axios.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
 
-      const decodedToken = jwtDecode(accessToken); 
+      const decodedToken = jwtDecode(accessToken); // ~3 days by minimals server
 
       if (decodedToken && 'exp' in decodedToken) {
         tokenExpired(decodedToken.exp);
+      } else {
+        throw new Error('Invalid access token!');
       }
     } else {
       sessionStorage.removeItem(STORAGE_KEY);

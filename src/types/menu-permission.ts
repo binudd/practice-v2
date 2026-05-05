@@ -6,13 +6,6 @@ export type MenuPermissionListItem = {
   isReport: boolean;
 };
 
-export type RoleItem = {
-  roleID: number;
-  roleName: string;
-  roleDescription: string;
-  isValid: boolean;
-};
-
 export type MenuCrudPermissions = {
   canView: boolean;
   canAdd: boolean;
@@ -41,8 +34,7 @@ export type PermissionAssignee = {
 };
 
 export type PermissionAssignmentPayload = {
-  roleID: number;
   roleName: string;
-  roleDescription: string;
+  user: PermissionAssignee;
   matrix: MenuPermissionMatrixState;
 };
