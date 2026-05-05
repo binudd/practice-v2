@@ -1,3 +1,6 @@
+import type { IKanbanTask } from 'src/types/kanban';
+import type { GridColDef, GridRowSelectionModel } from '@mui/x-data-grid';
+import type { KanbanBoardLayoutMode } from 'src/store/ui-preferences-store';
 import type {
   DragEndEvent,
   DragOverEvent,
@@ -6,13 +9,21 @@ import type {
   CollisionDetection,
 } from '@dnd-kit/core';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
 import {
   arrayMove,
   SortableContext,
   verticalListSortingStrategy,
   horizontalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import {
+  useRef,
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactElement,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import {
   useSensor,
   DndContext,
@@ -27,23 +38,52 @@ import {
   MeasuringStrategy,
 } from '@dnd-kit/core';
 
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Switch from '@mui/material/Switch';
-import FormControlLabel from '@mui/material/FormControlLabel';
+import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import ToggleButton from '@mui/material/ToggleButton';
+import { DataGrid, gridClasses } from '@mui/x-data-grid';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+
+import { useBoolean } from 'src/hooks/use-boolean';
+
+import { fDate } from 'src/utils/format-time';
 
 import { hideScrollY } from 'src/theme/styles';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { moveTask, moveColumn, useGetBoard } from 'src/actions/kanban';
+import { useUIPreferencesStore } from 'src/store/ui-preferences-store';
+import {
+  moveTask,
+  deleteTask,
+  moveColumn,
+  updateTask,
+  useGetBoard,
+} from 'src/actions/kanban';
 
+import { toast } from 'src/components/snackbar';
+import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
+import {
+  breadcrumbHomeLink,
+  useSetDashboardBreadcrumbs,
+} from 'src/components/dashboard-breadcrumbs';
+
+import { Can } from 'src/auth/guard';
+import { useAuthContext } from 'src/auth/hooks';
+import { hasPermission } from 'src/auth/permissions';
 
 import { kanbanClasses } from '../classes';
 import { coordinateGetter } from '../utils';
 import { KanbanColumn } from '../column/kanban-column';
+import { KanbanDetails } from '../details/kanban-details';
 import { KanbanTaskItem } from '../item/kanban-task-item';
 import { KanbanColumnAdd } from '../column/kanban-column-add';
 import { KanbanColumnSkeleton } from '../components/kanban-skeleton';
 import { KanbanDragOverlay } from '../components/kanban-drag-overlay';
+import { KanbanTaskBulkUpdateDialog } from '../kanban-task-bulk-update-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -58,15 +98,63 @@ const cssVars = {
   '--column-padding': '20px 16px 16px 16px',
 };
 
+type TaskFlatRow = {
+  id: string;
+  columnId: UniqueIdentifier;
+  columnName: string;
+  task: IKanbanTask;
+};
+
+function emptyKanbanSelection(): GridRowSelectionModel {
+  return [];
+}
+
 type Props = {
   projectId?: string;
   title?: string;
+  /**
+   * Omit inner DashboardContent so parent shell (e.g. project detail) owns padding — avoids double inset.
+   * Board markup, cssVars, and scroll height behavior are unchanged vs the full-page variant.
+   */
+  embedded?: boolean;
 };
 
-export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {}) {
+export function KanbanView({
+  projectId,
+  title: _title = 'My Work',
+  embedded = false,
+}: Props = {}) {
   const { board, boardLoading, boardEmpty } = useGetBoard(projectId);
 
-  const [columnFixed, setColumnFixed] = useState(true);
+  const kanbanScopeKey = projectId ?? 'global';
+  const layoutMode: KanbanBoardLayoutMode =
+    useUIPreferencesStoreKanban(kanbanScopeKey);
+  const setKanbanLayout = useUIPreferencesStore((s) => s.setKanbanLayout);
+
+  const { user } = useAuthContext();
+
+  const bulkPermission = Boolean(user && hasPermission(user.role, 'task:update'));
+  const bulkSelectionEligible =
+    bulkPermission && layoutMode === 'list' && !boardEmpty && !boardLoading;
+
+  const [rowSelectionModel, setRowSelectionModel] =
+    useState<GridRowSelectionModel>(() => emptyKanbanSelection());
+  const bulkDialog = useBoolean();
+
+  useEffect(() => {
+    setRowSelectionModel(emptyKanbanSelection());
+  }, [layoutMode]);
+
+  useEffect(() => {
+    setRowSelectionModel(emptyKanbanSelection());
+  }, [kanbanScopeKey]);
+
+  useSetDashboardBreadcrumbs(
+    [breadcrumbHomeLink, { name: 'My Work' }],
+    undefined,
+    [embedded, projectId],
+    { skip: embedded || Boolean(projectId) }
+  );
 
   const recentlyMovedToNewContainer = useRef(false);
 
@@ -74,7 +162,38 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
 
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
 
+  const [detailTaskCtx, setDetailTaskCtx] = useState<
+    | {
+        task: IKanbanTask;
+        columnId: UniqueIdentifier;
+      }
+    | null
+  >(null);
+
   const columnIds = board.columns.map((column) => column.id);
+
+  const taskRows = useMemo((): TaskFlatRow[] => {
+    if (!board.columns.length) return [];
+
+    return board.columns.flatMap((col) =>
+      (board.tasks[col.id] ?? []).map((task) => ({
+        id: String(task.id),
+        columnId: col.id,
+        columnName: col.name,
+        task,
+      }))
+    );
+  }, [board.columns, board.tasks]);
+
+  const bulkTargetsResolved = useMemo(() => {
+    const selectedIds = [...rowSelectionModel].map(String);
+    return selectedIds.flatMap((id) => {
+      const row = taskRows.find((r) => r.id === id);
+      return row ? [{ columnId: row.columnId, taskId: row.task.id }] : [];
+    });
+  }, [rowSelectionModel, taskRows]);
+
+  const selectedKanbanCount = rowSelectionModel.length;
 
   const isSortingContainer = activeId ? columnIds.includes(activeId) : false;
 
@@ -95,23 +214,17 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
         });
       }
 
-      // Start by finding any intersecting droppable
       const pointerIntersections = pointerWithin(args);
 
       const intersections =
-        pointerIntersections.length > 0
-          ? // If there are droppables intersecting with the pointer, return those
-            pointerIntersections
-          : rectIntersection(args);
+        pointerIntersections.length > 0 ? pointerIntersections : rectIntersection(args);
       let overId = getFirstCollision(intersections, 'id');
 
       if (overId != null) {
         if (overId in board.tasks) {
           const columnItems = board.tasks[overId].map((task) => task.id);
 
-          // If a column is matched and it contains items (columns 'A', 'B', 'C')
           if (columnItems.length > 0) {
-            // Return the closest droppable within that column
             overId = closestCenter({
               ...args,
               droppableContainers: args.droppableContainers.filter(
@@ -126,29 +239,27 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
         return [{ id: overId }];
       }
 
-      // When a draggable item moves to a new column, the layout may shift
-      // and the `overId` may become `null`. We manually set the cached `lastOverId`
-      // to the id of the draggable item that was moved to the new column, otherwise
-      // the previous `overId` will be returned which can cause items to incorrectly shift positions
       if (recentlyMovedToNewContainer.current) {
         lastOverId.current = activeId;
       }
 
-      // If no droppable is matched, return the last match
       return lastOverId.current ? [{ id: lastOverId.current }] : [];
     },
     [activeId, board?.tasks]
   );
 
-  const findColumn = (id: UniqueIdentifier) => {
-    if (id in board.tasks) {
-      return id;
-    }
+  const findColumn = useCallback(
+    (id: UniqueIdentifier) => {
+      if (id in board.tasks) {
+        return id;
+      }
 
-    return Object.keys(board.tasks).find((key) =>
-      board.tasks[key].map((task) => task.id).includes(id)
-    );
-  };
+      return Object.keys(board.tasks).find((key) =>
+        board.tasks[key].map((task) => task.id).includes(id)
+      );
+    },
+    [board.tasks]
+  );
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -156,16 +267,16 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
     });
   }, []);
 
-  /**
-   * onDragStart
-   */
+  const handleChangeLayoutMode = (_event: ReactMouseEvent<HTMLElement>, mode: KanbanBoardLayoutMode | null) => {
+    if (mode !== null) {
+      setKanbanLayout(kanbanScopeKey, mode);
+    }
+  };
+
   const onDragStart = ({ active }: DragStartEvent) => {
     setActiveId(active.id);
   };
 
-  /**
-   * onDragOver
-   */
   const onDragOver = ({ active, over }: DragOverEvent) => {
     const overId = over?.id;
 
@@ -214,13 +325,10 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
         ],
       };
 
-      moveTask(updateTasks);
+      moveTask(updateTasks, projectId);
     }
   };
 
-  /**
-   * onDragEnd
-   */
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     if (active.id in board.tasks && over?.id) {
       const activeIndex = columnIds.indexOf(active.id);
@@ -228,7 +336,7 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
 
       const updateColumns = arrayMove(board.columns, activeIndex, overIndex);
 
-      moveColumn(updateColumns);
+      moveColumn(updateColumns, projectId);
     }
 
     const activeColumn = findColumn(active.id);
@@ -260,12 +368,90 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
           [overColumn]: arrayMove(board.tasks[overColumn], activeIndex, overIndex),
         };
 
-        moveTask(updateTasks);
+        moveTask(updateTasks, projectId);
       }
     }
 
     setActiveId(null);
   };
+
+  const columns = useMemo<GridColDef<TaskFlatRow>[]>(
+    () => [
+      {
+        field: 'name',
+        headerName: 'Task',
+        flex: 1,
+        minWidth: 220,
+        valueGetter: (_v, row) => row.task.name,
+      },
+      {
+        field: 'columnName',
+        headerName: 'Column',
+        width: 160,
+        valueGetter: (_v, row) => row.columnName,
+      },
+      {
+        field: 'priority',
+        headerName: 'Priority',
+        width: 120,
+        valueGetter: (_v, row) => row.task.priority,
+      },
+      {
+        field: 'due',
+        headerName: 'Due window',
+        width: 200,
+        valueGetter: (_v, row) => {
+          const start = row.task.due[0];
+          const end = row.task.due[1];
+          if (!start && !end) return '—';
+          return `${start ? fDate(start) : '—'} → ${end ? fDate(end) : '—'}`;
+        },
+      },
+      {
+        field: 'assignees',
+        headerName: 'Assignees',
+        flex: 0.85,
+        minWidth: 160,
+        sortable: false,
+        valueGetter: (_v, row) =>
+          row.task.assignee?.length
+            ? row.task.assignee.map((a) => a.name).join(', ')
+            : '—',
+      },
+    ],
+    []
+  );
+
+  const handleBulkApplied = () => {
+    setRowSelectionModel(emptyKanbanSelection());
+  };
+
+  const handleOpenBulkDialog = () => {
+    if (bulkTargetsResolved.length === 0) return;
+    bulkDialog.onTrue();
+  };
+
+  const handleUpdateDetailTask = useCallback(
+    (taskData: IKanbanTask) => {
+      if (!detailTaskCtx) return;
+
+      updateTask(detailTaskCtx.columnId, taskData, projectId);
+      setDetailTaskCtx({
+        columnId: detailTaskCtx.columnId,
+        task: taskData,
+      });
+    },
+    [detailTaskCtx, projectId]
+  );
+
+  const handleDeleteDetailTask = useCallback(() => {
+    if (!detailTaskCtx) return;
+
+    deleteTask(detailTaskCtx.columnId, detailTaskCtx.task.id, projectId);
+
+    toast.success('Delete success!', { position: 'top-center' });
+    setDetailTaskCtx(null);
+  }, [detailTaskCtx, projectId]);
 
   const renderLoading = (
     <Stack direction="row" alignItems="flex-start" sx={{ gap: 'var(--column-gap)' }}>
@@ -275,7 +461,7 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
 
   const renderEmpty = <EmptyContent filled sx={{ py: 10, maxHeight: { md: 480 } }} />;
 
-  const renderList = (
+  const renderKanbanBoard = (
     <DndContext
       id="dnd-kanban"
       sensors={sensors}
@@ -289,19 +475,18 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
         <Stack
           sx={{
             pb: 3,
-            display: 'unset',
-            ...(columnFixed && { minHeight: 0, display: 'flex', flex: '1 1 auto' }),
+            minHeight: 0,
+            display: 'flex',
+            flex: '1 1 auto',
           }}
         >
           <Stack
             direction="row"
             sx={{
               gap: 'var(--column-gap)',
-              ...(columnFixed && {
-                minHeight: 0,
-                flex: '1 1 auto',
-                [`& .${kanbanClasses.columnList}`]: { ...hideScrollY, flex: '1 1 auto' },
-              }),
+              minHeight: 0,
+              flex: '1 1 auto',
+              [`& .${kanbanClasses.columnList}`]: { ...hideScrollY, flex: '1 1 auto' },
             }}
           >
             <SortableContext
@@ -309,7 +494,12 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
               strategy={horizontalListSortingStrategy}
             >
               {board?.columns.map((column) => (
-                <KanbanColumn key={column.id} column={column} tasks={board.tasks[column.id]}>
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  tasks={board.tasks[column.id]}
+                  boardProjectId={projectId}
+                >
                   <SortableContext
                     items={board.tasks[column.id]}
                     strategy={verticalListSortingStrategy}
@@ -319,6 +509,7 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
                         task={task}
                         key={task.id}
                         columnId={column.id}
+                        boardProjectId={projectId}
                         disabled={isSortingContainer}
                       />
                     ))}
@@ -326,7 +517,7 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
                 </KanbanColumn>
               ))}
 
-              <KanbanColumnAdd id={PLACEHOLDER_ID} />
+              <KanbanColumnAdd id={PLACEHOLDER_ID} boardProjectId={projectId} />
             </SortableContext>
           </Stack>
         </Stack>
@@ -341,42 +532,168 @@ export function KanbanView({ projectId, title: _title = 'My Work' }: Props = {})
     </DndContext>
   );
 
+  const renderKanbanTaskList = (
+    <Card sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 360 }}>
+      <DataGrid<TaskFlatRow>
+        autoHeight
+        disableRowSelectionOnClick={bulkSelectionEligible}
+        rows={taskRows}
+        columns={columns}
+        pageSizeOptions={[10, 25, 50]}
+        initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+        getRowId={(row) => row.id}
+        checkboxSelection={bulkSelectionEligible}
+        rowSelectionModel={rowSelectionModel}
+        onRowSelectionModelChange={setRowSelectionModel}
+        onRowClick={(params) => {
+          setDetailTaskCtx({
+            task: params.row.task,
+            columnId: params.row.columnId,
+          });
+        }}
+        slots={{
+          noRowsOverlay: () => <EmptyContent title="No tasks" sx={{ py: 4 }} />,
+        }}
+        sx={{
+          [`& .${gridClasses.row}`]: { cursor: 'pointer' },
+          borderWidth: 0,
+        }}
+      />
+    </Card>
+  );
+
+  const renderBrowsingChrome = (
+    <Stack sx={{ flex: '1 1 0', minHeight: 0, width: 1 }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        flexWrap="wrap"
+        justifyContent="space-between"
+        columnGap={2}
+        rowGap={1}
+        sx={{ mb: 2 }}
+      >
+        <ToggleButtonGroup
+          size="small"
+          exclusive
+          value={layoutMode}
+          onChange={handleChangeLayoutMode}
+        >
+          <ToggleButton value="board" aria-label="Board columns">
+            <Tooltip title="Board">
+              <Iconify icon="mingcute:dot-grid-fill" />
+            </Tooltip>
+          </ToggleButton>
+          <ToggleButton value="list" aria-label="Task list">
+            <Tooltip title="List">
+              <Iconify icon="solar:list-bold" />
+            </Tooltip>
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        {bulkSelectionEligible ? (
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1.5}
+            flexWrap="wrap"
+            sx={{ ml: { sm: 'auto' } }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              {selectedKanbanCount > 0
+                ? `${selectedKanbanCount} selected`
+                : 'Select rows for bulk updates'}
+            </Typography>
+            <Can perm="task:update">
+              <Button
+                variant="contained"
+                size="small"
+                disabled={bulkTargetsResolved.length === 0}
+                startIcon={<Iconify icon="solar:pen-bold" />}
+                onClick={handleOpenBulkDialog}
+              >
+                Update
+              </Button>
+            </Can>
+          </Stack>
+        ) : null}
+      </Stack>
+
+      <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', width: 1 }}>
+        {layoutMode === 'board' ? renderKanbanBoard : renderKanbanTaskList}
+      </Box>
+    </Stack>
+  );
+
+  let bodyContent: ReactElement;
+
+  if (boardLoading) {
+    bodyContent = renderLoading;
+  } else if (boardEmpty) {
+    bodyContent = renderEmpty;
+  } else {
+    bodyContent = renderBrowsingChrome;
+  }
+
+  const shellSx = {
+    ...cssVars,
+    flex: '1 1 0',
+    minHeight: 0,
+    display: 'flex',
+    overflow: 'hidden',
+    flexDirection: 'column',
+    width: 1,
+  };
+
+  const overlays = (
+    <>
+      {detailTaskCtx !== null ? (
+        <KanbanDetails
+          task={detailTaskCtx.task}
+          openDetails={detailTaskCtx !== null}
+          onCloseDetails={() => setDetailTaskCtx(null)}
+          onUpdateTask={handleUpdateDetailTask}
+          onDeleteTask={handleDeleteDetailTask}
+        />
+      ) : null}
+      <KanbanTaskBulkUpdateDialog
+        open={bulkDialog.value}
+        kanbanBoardProjectId={projectId}
+        targets={bulkTargetsResolved}
+        boardSnapshot={{ tasks: board.tasks }}
+        onClose={bulkDialog.onFalse}
+        onApplied={handleBulkApplied}
+      />
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <Box sx={shellSx}>
+        {bodyContent}
+        {overlays}
+      </Box>
+    );
+  }
+
   return (
     <DashboardContent
       maxWidth={false}
       sx={{
-        ...cssVars,
+        ...shellSx,
         pb: 0,
         pl: { sm: 3 },
         pr: { sm: 0 },
-        flex: '1 1 0',
-        display: 'flex',
-        overflow: 'hidden',
-        flexDirection: 'column',
       }}
     >
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="flex-end"
-        sx={{ pr: { sm: 3 }, mb: { xs: 3, md: 5 } }}
-      >
-        <FormControlLabel
-          label="Column fixed"
-          labelPlacement="start"
-          control={
-            <Switch
-              checked={columnFixed}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                setColumnFixed(event.target.checked);
-              }}
-              inputProps={{ id: 'column-fixed-switch' }}
-            />
-          }
-        />
-      </Stack>
-
-      {boardLoading ? renderLoading : <>{boardEmpty ? renderEmpty : renderList}</>}
+      {bodyContent}
+      {overlays}
     </DashboardContent>
   );
+}
+
+// ----------------------------------------------------------------------
+
+function useUIPreferencesStoreKanban(scopeKey: string): KanbanBoardLayoutMode {
+  return useUIPreferencesStore((state) => state.kanbanLayout[scopeKey] ?? 'board');
 }

@@ -27,7 +27,10 @@ export async function createProjectWithBoard(project: IProject): Promise<Result<
     await createProjectAction(project);
     await Promise.all(
       DEFAULT_COLUMNS.map((name) =>
-        createColumn({ id: `${project.id}-${name.toLowerCase().replace(/\s+/g, '-')}`, name })
+        createColumn(
+          { id: `${project.id}-${name.toLowerCase().replace(/\s+/g, '-')}`, name },
+          project.id
+        )
       )
     );
     notify({ kind: 'success', title: 'Project created', description: project.name });
@@ -60,7 +63,7 @@ export async function deleteProjectCascade(project: IProject): Promise<Result<vo
       DEFAULT_COLUMNS.map(async (col) => {
         const columnId = `${project.id}-${col.toLowerCase().replace(/\s+/g, '-')}`;
         try {
-          await deleteColumn(columnId);
+          await deleteColumn(columnId, project.id);
         } catch (e) {
           console.warn('[project-service] column tombstone failed', columnId, e);
         }

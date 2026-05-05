@@ -1,11 +1,11 @@
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Avatar from '@mui/material/Avatar';
 import InputBase from '@mui/material/InputBase';
 import IconButton from '@mui/material/IconButton';
 
 import { Iconify } from 'src/components/iconify';
+import { UserAvatar } from 'src/components/user-avatar';
 
 import { useMockedUser } from 'src/auth/hooks';
 
@@ -16,9 +16,7 @@ export function KanbanDetailsCommentInput() {
 
   return (
     <Stack direction="row" spacing={2} sx={{ py: 3, px: 2.5 }}>
-      <Avatar src={user?.photoURL} alt={user?.displayName}>
-        {user?.displayName?.charAt(0).toUpperCase()}
-      </Avatar>
+      <UserAvatar name={user?.displayName ?? undefined} src={user?.photoURL} />
 
       <Paper variant="outlined" sx={{ p: 1, flexGrow: 1, bgcolor: 'transparent' }}>
         <InputBase fullWidth multiline rows={2} placeholder="Type a message" sx={{ px: 1 }} />

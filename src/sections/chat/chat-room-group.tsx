@@ -3,12 +3,13 @@ import type { IChatParticipant } from 'src/types/chat';
 import { useState, useCallback } from 'react';
 
 import Badge from '@mui/material/Badge';
-import Avatar from '@mui/material/Avatar';
 import Collapse from '@mui/material/Collapse';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
 
 import { useBoolean } from 'src/hooks/use-boolean';
+
+import { UserAvatar } from 'src/components/user-avatar';
 
 import { CollapseButton } from './styles';
 import { ChatRoomParticipantDialog } from './chat-room-participant-dialog';
@@ -42,7 +43,7 @@ export function ChatRoomGroup({ participants }: Props) {
             variant={participant.status}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           >
-            <Avatar alt={participant.name} src={participant.avatarUrl} />
+            <UserAvatar name={participant.name} src={participant.avatarUrl} />
           </Badge>
 
           <ListItemText

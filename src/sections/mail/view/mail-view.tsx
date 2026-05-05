@@ -9,6 +9,11 @@ import { useResponsive } from 'src/hooks/use-responsive';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { useGetMail, useGetMails, useGetLabels } from 'src/actions/mail';
 
+import {
+  breadcrumbHomeLink,
+  useSetDashboardBreadcrumbs,
+} from 'src/components/dashboard-breadcrumbs';
+
 import { Layout } from '../layout';
 import { MailNav } from '../mail-nav';
 import { MailList } from '../mail-list';
@@ -104,6 +109,8 @@ export function MailView() {
       document.body.style.overflow = '';
     }
   }, [openCompose.value]);
+
+  useSetDashboardBreadcrumbs([breadcrumbHomeLink, { name: 'Mail' }], undefined, []);
 
   return (
     <>

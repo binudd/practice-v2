@@ -7,7 +7,6 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
@@ -27,6 +26,7 @@ import { maxLine } from 'src/theme/styles';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { UserAvatar } from 'src/components/user-avatar';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { FileThumbnail } from 'src/components/file-thumbnail';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
@@ -167,7 +167,7 @@ export function FileManagerFileItem({ file, selected, onSelect, onDelete, sx, ..
       }}
     >
       {file.shared?.map((person) => (
-        <Avatar key={person.id} alt={person.name} src={person.avatarUrl} />
+        <UserAvatar key={person.id} name={person.name} src={person.avatarUrl} />
       ))}
     </AvatarGroup>
   );

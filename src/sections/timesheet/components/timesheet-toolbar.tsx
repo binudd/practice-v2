@@ -1,18 +1,22 @@
 import dayjs from 'dayjs';
 
+import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
 import ToggleButton from '@mui/material/ToggleButton';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
-import { Iconify } from 'src/components/iconify';
+import {
+  DateNavTitle,
+  DateToolbarRow,
+  DateNavArrowBack,
+  DateNavArrowForward,
+} from 'src/components/date-nav';
 
 // ----------------------------------------------------------------------
 
-type TimesheetToolbarProps = {
+export type TimesheetToolbarProps = {
   viewMode: 'week' | 'day';
   onViewMode: (mode: 'week' | 'day') => void;
   selectedDate: Date;
@@ -21,11 +25,15 @@ type TimesheetToolbarProps = {
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
-  onAddTimeLog: () => void;
-  canAdd: boolean;
+  /** Shows the same loading line as the calendar toolbar while entries load. */
   loading?: boolean;
 };
 
+/**
+ * Date controls aligned with [`CalendarToolbar`](calendar/calendar-toolbar.tsx): same
+ * `DateToolbarRow`, nav arrows, and `DateNavTitle`. Week/day toggle and jump picker stay
+ * timesheet-specific; “This week” / “Today” remain text buttons for the existing subtle UX.
+ */
 export function TimesheetToolbar({
   viewMode,
   onViewMode,
@@ -35,8 +43,6 @@ export function TimesheetToolbar({
   onPrev,
   onNext,
   onToday,
-  onAddTimeLog,
-  canAdd,
   loading,
 }: TimesheetToolbarProps) {
   const rangeLabel =
@@ -45,57 +51,62 @@ export function TimesheetToolbar({
       : '';
 
   return (
-    <Stack
-      direction={{ xs: 'column', lg: 'row' }}
-      spacing={2}
-      alignItems={{ lg: 'center' }}
-      justifyContent="space-between"
+    <Box
+      sx={{
+        flexShrink: 0,
+        borderBottom: (theme) => `solid 1px ${theme.vars.palette.divider}`,
+      }}
     >
-      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-        <IconButton onClick={onPrev} aria-label="Previous period" size="small">
-          <Iconify icon="eva:arrow-ios-back-fill" />
-        </IconButton>
-        <Typography variant="subtitle1" sx={{ minWidth: 160, textAlign: 'center', fontWeight: 600 }}>
-          {rangeLabel}
-        </Typography>
-        <IconButton onClick={onNext} aria-label="Next period" size="small">
-          <Iconify icon="eva:arrow-ios-forward-fill" />
-        </IconButton>
-        <Button size="small" variant="text" onClick={onToday}>
-          {viewMode === 'week' ? 'This week' : 'Today'}
-        </Button>
-      </Stack>
-
-      <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+      <DateToolbarRow loading={loading}>
         <ToggleButtonGroup
           size="small"
           value={viewMode}
           exclusive
           onChange={(_, v) => v && onViewMode(v)}
+          sx={{ flexShrink: 0 }}
         >
           <ToggleButton value="week">Week</ToggleButton>
           <ToggleButton value="day">Day</ToggleButton>
         </ToggleButtonGroup>
 
-        <DatePicker
-          label={viewMode === 'week' ? 'Week' : 'Day'}
-          value={dayjs(selectedDate)}
-          onChange={(v) => v && onSelectedDate(v.toDate())}
-          slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
-        />
-
-        {canAdd && (
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Iconify icon="mingcute:add-line" />}
-            onClick={onAddTimeLog}
-            disabled={loading}
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <DateNavArrowBack onClick={onPrev} aria-label="Previous period" />
+          <DateNavTitle
+            variant="subtitle1"
+            sx={{
+              minWidth: { xs: 120, sm: 200 },
+              textAlign: 'center',
+              fontWeight: 600,
+            }}
           >
-            Add time log
+            {rangeLabel}
+          </DateNavTitle>
+          <DateNavArrowForward onClick={onNext} aria-label="Next period" />
+        </Stack>
+
+        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" justifyContent="flex-end">
+          <Button size="small" variant="text" onClick={onToday}>
+            {viewMode === 'week' ? 'This week' : 'Today'}
           </Button>
-        )}
-      </Stack>
-    </Stack>
+
+          <DatePicker
+            label={viewMode === 'week' ? 'Week' : 'Day'}
+            value={dayjs(selectedDate)}
+            onChange={(v) => v && onSelectedDate(v.toDate())}
+            views={['year', 'month', 'day']}
+            openTo="month"
+            slotProps={{
+              textField: {
+                size: 'small',
+                sx: (t) => ({
+                  minWidth: t.spacing(18),
+                  maxWidth: '100%',
+                }),
+              },
+            }}
+          />
+        </Stack>
+      </DateToolbarRow>
+    </Box>
   );
 }

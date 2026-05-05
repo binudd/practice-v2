@@ -4,7 +4,6 @@ import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
@@ -14,6 +13,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { _socials } from 'src/_mock';
 
+import { UserAvatar } from 'src/components/user-avatar';
 import { Iconify, SocialIcon } from 'src/components/iconify';
 import { SearchNotFound } from 'src/components/search-not-found';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
@@ -103,7 +103,7 @@ function FriendCard({ item }: FriendCardProps) {
           flexDirection: 'column',
         }}
       >
-        <Avatar alt={item.name} src={item.avatarUrl} sx={{ width: 64, height: 64, mb: 3 }} />
+        <UserAvatar name={item.name} src={item.avatarUrl} sx={{ width: 64, height: 64, mb: 3 }} />
 
         <Link variant="subtitle1" color="text.primary">
           {item.name}

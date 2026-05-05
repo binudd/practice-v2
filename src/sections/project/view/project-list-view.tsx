@@ -1,9 +1,13 @@
 import type { IDatePickerControl } from 'src/types/common';
 import type { ViewMode } from 'src/store/ui-preferences-store';
-import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import type { IProject, IProjectStatus, IProjectPriority } from 'src/types/project';
+import type {
+  GridColDef,
+  GridRowParams,
+  GridRowSelectionModel,
+} from '@mui/x-data-grid';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
@@ -30,59 +34,67 @@ import { fIsAfter, fIsBetween } from 'src/utils/format-time';
 
 import { varAlpha } from 'src/theme/styles';
 import { useGetProjects } from 'src/actions/project';
+import { notify } from 'src/store/notifications-store';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { PROJECT_STATUS_OPTIONS } from 'src/_mock/_project';
+import { ProjectPolicy } from 'src/domain/project/project-policy';
 import { useUIPreferencesStore } from 'src/store/ui-preferences-store';
 import { useFiltersStore, selectScreenFilter } from 'src/store/filters-store';
+import { formatProjectCodeWithClient } from 'src/domain/project/project-selectors';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { BulkSelectionToolbar } from 'src/components/bulk-selection-toolbar';
+import {
+  breadcrumbHomeLink,
+  useSetDashboardBreadcrumbs,
+  DashboardToolbarPrimaryButton,
+} from 'src/components/dashboard-breadcrumbs';
 
 import { Can } from 'src/auth/guard';
-import { useCurrentRole } from 'src/auth/hooks';
+import { hasPermission } from 'src/auth/permissions';
+import { useAuthContext, useCurrentRole } from 'src/auth/hooks';
 
 import { ProjectCardList } from '../project-card-list';
 import { ProjectListFilters } from '../project-list-filters';
-import { PROJECT_LIST_FILTER_KEY } from '../project-list-filter-key';
+import { ProjectBulkUpdateDialog } from '../project-bulk-update-dialog';
 import { ProjectListFiltersResult } from '../project-list-filters-result';
+import { ProjectMembersAvatarGroup } from '../project-members-avatar-group';
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_SOFT_COLOR } from '../project-status-meta';
+import {
+  PROJECT_LIST_FILTER_KEY,
+  PROJECT_BROWSE_FILTER_KEYS,
+} from '../project-list-filter-key';
 
 // ----------------------------------------------------------------------
 
-const SCREEN_KEY = PROJECT_LIST_FILTER_KEY;
-
-const MODULE_TABS = [
+/** Main project browse: active | completed | overview. Templates/recurring are separate hubs. */
+const DEFAULT_MODULE_TABS = [
   { value: 'active', label: 'Active' },
   { value: 'completed', label: 'Completed' },
-  { value: 'templates', label: 'Templates' },
   { value: 'overview', label: 'Overview' },
-  { value: 'recurring', label: 'Recurring' },
 ] as const;
 
-type ModuleTab = (typeof MODULE_TABS)[number]['value'];
+type DefaultModuleTabValue = (typeof DEFAULT_MODULE_TABS)[number]['value'];
 
-const MODULE_TAB_SET = new Set<string>(MODULE_TABS.map((t) => t.value));
+const DEFAULT_TAB_SET = new Set<string>(DEFAULT_MODULE_TABS.map((t) => t.value));
 
-type ListModuleTab = Exclude<ModuleTab, 'overview'>;
+export type ProjectListViewProps = {
+  /** Standalone hubs: templates & recurring projects have their own routes and filter-store keys. */
+  moduleHub?: 'templates' | 'recurring';
+};
 
-const EMPTY_TITLE: Record<ListModuleTab, string> = {
+/** Row filter excluding overview dashboard. */
+export type BrowseListTab =
+  | Exclude<DefaultModuleTabValue, 'overview'>
+  | 'templates'
+  | 'recurring';
+
+const EMPTY_TITLE: Record<Exclude<BrowseListTab, 'overview'>, string> = {
   active: 'No active projects',
   completed: 'No completed projects',
   templates: 'No templates',
   recurring: 'No recurring projects',
-};
-
-const statusLabel: Record<IProjectStatus, string> = PROJECT_STATUS_OPTIONS.reduce(
-  (acc, option) => ({ ...acc, [option.value]: option.label }),
-  {} as Record<IProjectStatus, string>
-);
-
-const statusColor: Record<IProjectStatus, 'success' | 'warning' | 'info' | 'default'> = {
-  active: 'success',
-  'on-hold': 'warning',
-  completed: 'info',
-  archived: 'default',
 };
 
 // ----------------------------------------------------------------------
@@ -98,11 +110,57 @@ function OverviewStatCard({ title, value }: { title: string; value: number }) {
   );
 }
 
-function matchesModuleTab(project: IProject, tab: ListModuleTab): boolean {
+function OverviewStatCardLink({
+  title,
+  value,
+  href,
+}: {
+  title: string;
+  value: number;
+  href: string;
+}) {
+  return (
+    <Card
+      component={RouterLink}
+      href={href}
+      sx={{
+        p: 2.5,
+        height: 1,
+        textDecoration: 'none',
+        transition: (theme) => theme.transitions.create(['box-shadow', 'border-color']),
+        '&:hover': {
+          boxShadow: (theme) => theme.customShadows.card,
+          borderColor: 'primary.main',
+        },
+      }}
+    >
+      <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 0.5 }}>
+        {title}
+      </Typography>
+      <Typography variant="h4" color="text.primary">
+        {value}
+      </Typography>
+    </Card>
+  );
+}
+
+function matchesModuleTab(project: IProject, tab: Exclude<BrowseListTab, 'overview'>): boolean {
   if (tab === 'active') return project.status === 'active' || project.status === 'on-hold';
   if (tab === 'completed') return project.status === 'completed';
   if (tab === 'templates') return project.isTemplate;
   return project.isRecurring;
+}
+
+function projectMatchesSearch(project: IProject, searchRaw: string): boolean {
+  const q = searchRaw.trim().toLowerCase();
+  if (!q) return true;
+  const client = project.clientCompanyName?.trim().toLowerCase() ?? '';
+  return (
+    project.name.toLowerCase().includes(q) ||
+    project.code.toLowerCase().includes(q) ||
+    project.ownerName.toLowerCase().includes(q) ||
+    client.includes(q)
+  );
 }
 
 const PRIORITY_SET = new Set<IProjectPriority>(['low', 'medium', 'high', 'critical']);
@@ -112,17 +170,43 @@ function normalizePriorities(raw: unknown): IProjectPriority[] {
   return raw.filter((p): p is IProjectPriority => PRIORITY_SET.has(p as IProjectPriority));
 }
 
+function emptyGridRowSelection(): GridRowSelectionModel {
+  return [];
+}
+
+function gridSelectionToIds(model: GridRowSelectionModel): string[] {
+  return [...model].map(String);
+}
+
 // ----------------------------------------------------------------------
 
-export function ProjectListView() {
+type ProjectListBrowseMode =
+  | { kind: 'default' }
+  | { kind: 'module'; moduleKey: 'templates' | 'recurring' };
+
+export function ProjectListView({ moduleHub }: ProjectListViewProps) {
+  const browseMode: ProjectListBrowseMode =
+    moduleHub === 'templates' || moduleHub === 'recurring'
+      ? { kind: 'module', moduleKey: moduleHub }
+      : { kind: 'default' };
+
+  const moduleBrowseKey = browseMode.kind === 'module' ? browseMode.moduleKey : null;
   const router = useRouter();
 
   const openFilters = useBoolean();
+
+  const SCREEN_KEY =
+    browseMode.kind === 'module'
+      ? browseMode.moduleKey === 'templates'
+        ? PROJECT_BROWSE_FILTER_KEYS.templates
+        : PROJECT_BROWSE_FILTER_KEYS.recurring
+      : PROJECT_BROWSE_FILTER_KEYS.default;
 
   const role = useCurrentRole();
   const filter = useFiltersStore(selectScreenFilter(SCREEN_KEY));
   const search = (filter.search as string | undefined) ?? '';
 
+  // Clients only see their own projects; everyone else sees the full list.
   const { projects, projectsLoading, projectsEmpty } = useGetProjects({
     // scope: role === 'client' ? 'mine' : 'all',
     searchText: search,
@@ -132,9 +216,47 @@ export function ProjectListView() {
   const setViewMode = useUIPreferencesStore((s) => s.setViewMode);
   const setFilter = useFiltersStore((s) => s.setFilter);
 
-  const rawModuleTab = filter.moduleTab as string | undefined;
-  const moduleTab: ModuleTab =
-    rawModuleTab && MODULE_TAB_SET.has(rawModuleTab) ? (rawModuleTab as ModuleTab) : 'active';
+  const rawModuleTabRaw = browseMode.kind === 'default' ? filter.moduleTab : undefined;
+  const rawModuleTab =
+    browseMode.kind === 'default'
+      ? (rawModuleTabRaw as string | undefined)
+      : undefined;
+
+  /** Legacy: templates/recurring used to live on the default list tabs; migrate to hubs. */
+  useEffect(() => {
+    if (browseMode.kind !== 'default') return;
+    const m = rawModuleTab as string | undefined;
+    if (m === 'templates' || m === 'recurring') {
+      setFilter(PROJECT_LIST_FILTER_KEY, { moduleTab: 'active' });
+    }
+  }, [browseMode.kind, rawModuleTab, setFilter]);
+
+  const defaultModuleTab: DefaultModuleTabValue =
+    browseMode.kind === 'default'
+      ? rawModuleTab && DEFAULT_TAB_SET.has(rawModuleTab)
+        ? (rawModuleTab as DefaultModuleTabValue)
+        : 'active'
+      : 'active';
+
+  const listBrowseTab: BrowseListTab | 'overview' =
+    browseMode.kind === 'module' ? browseMode.moduleKey : defaultModuleTab;
+
+  const { user } = useAuthContext();
+  const bulkDialog = useBoolean();
+  const [rowSelectionModel, setRowSelectionModel] = useState<GridRowSelectionModel>(
+    emptyGridRowSelection
+  );
+
+  const bulkSelectionEligible =
+    view === 'list' &&
+    Boolean(user && hasPermission(user.role, 'project:update')) &&
+    listBrowseTab !== 'overview';
+
+  useEffect(() => {
+    if (!bulkSelectionEligible) {
+      setRowSelectionModel(emptyGridRowSelection());
+    }
+  }, [bulkSelectionEligible]);
 
   const priorities = normalizePriorities(filter.priorities);
   const filterStartDate = (filter.startDate as IDatePickerControl | undefined) ?? null;
@@ -145,22 +267,33 @@ export function ProjectListView() {
   );
 
   const canReset =
-    priorities.length > 0 || Boolean(filterStartDate && filterEndDate);
+    priorities.length > 0 ||
+    Boolean(filterStartDate && filterEndDate) ||
+    Boolean(search.trim());
 
   const resetDrawerFilters = useCallback(() => {
-    setFilter(SCREEN_KEY, { priorities: [], startDate: null, endDate: null });
-  }, [setFilter]);
+    setFilter(SCREEN_KEY, {
+      priorities: [],
+      startDate: null,
+      endDate: null,
+      search: '',
+    });
+  }, [SCREEN_KEY, setFilter]);
+
+  const handleClearProjectSearch = useCallback(() => {
+    setFilter(SCREEN_KEY, { search: '' });
+  }, [SCREEN_KEY, setFilter]);
 
   const handleChangeView = useCallback(
     (event: React.MouseEvent<HTMLElement>, newView: ViewMode | null) => {
       if (newView !== null) setViewMode(SCREEN_KEY, newView);
     },
-    [setViewMode]
+    [SCREEN_KEY, setViewMode]
   );
 
   const handleModuleTabChange = useCallback(
-    (_: React.SyntheticEvent, value: ModuleTab) => {
-      setFilter(SCREEN_KEY, { moduleTab: value });
+    (_: React.SyntheticEvent, value: DefaultModuleTabValue) => {
+      setFilter(PROJECT_LIST_FILTER_KEY, { moduleTab: value });
     },
     [setFilter]
   );
@@ -189,17 +322,27 @@ export function ProjectListView() {
     return { active, onHold, completed, archived, templates, recurring, total: projects.length };
   }, [projects]);
 
+  const moduleTabCounts = useMemo(() => {
+    const matchesSearch = (project: IProject) => projectMatchesSearch(project, search);
+
+    const scoped = projects.filter(matchesSearch);
+
+    return {
+      active: scoped.filter((p) => matchesModuleTab(p, 'active')).length,
+      completed: scoped.filter((p) => matchesModuleTab(p, 'completed')).length,
+      overview: scoped.length,
+    };
+  }, [projects, search]);
+
   const dataFiltered = useMemo(() => {
-    if (moduleTab === 'overview') return [];
+    if (listBrowseTab === 'overview') return [];
+
+    const tabRow = listBrowseTab as Exclude<BrowseListTab, 'overview'>;
 
     return projects.filter((project) => {
-      const matchesSearch =
-        !search ||
-        project.name.toLowerCase().includes(search.toLowerCase()) ||
-        project.code.toLowerCase().includes(search.toLowerCase()) ||
-        project.ownerName.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = projectMatchesSearch(project, search);
 
-      if (!matchesSearch || !matchesModuleTab(project, moduleTab)) {
+      if (!matchesSearch || !matchesModuleTab(project, tabRow)) {
         return false;
       }
 
@@ -216,7 +359,7 @@ export function ProjectListView() {
       return true;
     });
   }, [
-    moduleTab,
+    listBrowseTab,
     projects,
     search,
     priorities,
@@ -227,11 +370,114 @@ export function ProjectListView() {
 
   const notFound = !projectsLoading && !projectsEmpty && dataFiltered.length === 0;
 
+  const searchTrimmed = search.trim();
+
+  const selectedBulkRowIds = useMemo(
+    () => gridSelectionToIds(rowSelectionModel),
+    [rowSelectionModel]
+  );
+
+  const bulkEditableIds = useMemo(
+    () =>
+      selectedBulkRowIds
+        .map((id) => projects.find((p) => p.id === id))
+        .filter((p): p is IProject => Boolean(p && user && ProjectPolicy.canEdit(user, p)))
+        .map((p) => p.id),
+    [projects, selectedBulkRowIds, user]
+  );
+
+  const bulkSkippedByPolicy = selectedBulkRowIds.length - bulkEditableIds.length;
+
+  const handleOpenBulkDialog = useCallback(() => {
+    if (selectedBulkRowIds.length === 0) return;
+    if (!user) return;
+    if (bulkEditableIds.length === 0) {
+      notify({
+        kind: 'warning',
+        title: 'Nothing to update',
+        description: 'Selected projects cannot be edited with your current permissions.',
+      });
+      return;
+    }
+    if (bulkSkippedByPolicy > 0) {
+      notify({
+        kind: 'info',
+        title: 'Some rows will be skipped',
+        description: `${bulkSkippedByPolicy} selected project(s) are not editable for you. Updates apply to ${bulkEditableIds.length} project(s).`,
+      });
+    }
+    bulkDialog.onTrue();
+  }, [bulkDialog, bulkEditableIds.length, bulkSkippedByPolicy, selectedBulkRowIds.length, user]);
+
+  const handleBulkApplied = useCallback(() => {
+    setRowSelectionModel(emptyGridRowSelection());
+  }, []);
+
+  const browseContextLabel = useMemo(() => {
+    if (moduleBrowseKey === 'templates') return 'Templates';
+    if (moduleBrowseKey === 'recurring') return 'Recurring projects';
+    const tabEntry = DEFAULT_MODULE_TABS.find((t) => t.value === defaultModuleTab);
+    return tabEntry?.label ?? 'Projects';
+  }, [moduleBrowseKey, defaultModuleTab]);
+
+  const breadcrumbsForToolbar = useMemo(() => {
+    if (moduleHub === 'templates') {
+      return [
+        breadcrumbHomeLink,
+        { name: 'Projects', href: paths.dashboard.project.root },
+        { name: 'Templates' },
+      ] as const;
+    }
+    if (moduleHub === 'recurring') {
+      return [
+        breadcrumbHomeLink,
+        { name: 'Projects', href: paths.dashboard.project.root },
+        { name: 'Recurring projects' },
+      ] as const;
+    }
+    return [
+      breadcrumbHomeLink,
+      { name: 'Projects', href: paths.dashboard.project.root },
+      { name: 'List' },
+    ] as const;
+  }, [moduleHub]);
+
+  const primaryToolbarAction =
+    moduleHub === 'templates' || moduleHub === 'recurring' ? (
+      <Can perm="project:create">
+        <DashboardToolbarPrimaryButton
+          component={RouterLink}
+          href={
+            moduleHub === 'templates'
+              ? paths.dashboard.project.newWithPreset('template')
+              : paths.dashboard.project.newWithPreset('recurring')
+          }
+          startIcon={<Iconify icon="mingcute:add-line" />}
+        >
+          {moduleHub === 'templates' ? 'New template' : 'New recurring project'}
+        </DashboardToolbarPrimaryButton>
+      </Can>
+    ) : (
+      <Can perm="project:create">
+        <DashboardToolbarPrimaryButton
+          component={RouterLink}
+          href={paths.dashboard.project.new}
+          startIcon={<Iconify icon="mingcute:add-line" />}
+        >
+          New project
+        </DashboardToolbarPrimaryButton>
+      </Can>
+    );
+
+  useSetDashboardBreadcrumbs([...breadcrumbsForToolbar], primaryToolbarAction, [moduleHub]);
+
   const columns: GridColDef<IProject>[] = [
     {
       field: 'code',
       headerName: 'Code',
-      width: 120,
+      minWidth: 220,
+      width: 240,
+      valueGetter: (_value, row) => formatProjectCodeWithClient(row),
     },
     {
       field: 'name',
@@ -247,8 +493,24 @@ export function ProjectListView() {
     {
       field: 'members',
       headerName: 'Members',
-      width: 110,
-      valueGetter: (value: string[]) => value.length,
+      width: 180,
+      sortable: true,
+      align: 'center',
+      headerAlign: 'center',
+      sortComparator: (v1: string[], v2: string[]) => v1.length - v2.length,
+      renderCell: (params) => (
+        <Box
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 1, py: 0.5 }}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <ProjectMembersAvatarGroup
+            projectId={params.row.id}
+            members={params.row.members}
+            compact
+          />
+        </Box>
+      ),
     },
     {
       field: 'progress',
@@ -272,8 +534,8 @@ export function ProjectListView() {
       headerName: 'Status',
       width: 120,
       renderCell: (params) => (
-        <Label variant="soft" color={statusColor[params.value as IProjectStatus]}>
-          {statusLabel[params.value as IProjectStatus]}
+        <Label variant="soft" color={PROJECT_STATUS_SOFT_COLOR[params.value as IProjectStatus]}>
+          {PROJECT_STATUS_LABELS[params.value as IProjectStatus]}
         </Label>
       ),
     },
@@ -313,6 +575,15 @@ export function ProjectListView() {
         columns={columns}
         pageSizeOptions={[10, 25, 50]}
         initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
+        getRowId={(row) => row.id}
+        checkboxSelection={bulkSelectionEligible}
+        rowSelectionModel={rowSelectionModel}
+        onRowSelectionModelChange={setRowSelectionModel}
+        isRowSelectable={
+          bulkSelectionEligible && user
+            ? (params) => ProjectPolicy.canEdit(user, params.row)
+            : undefined
+        }
         onRowClick={(params: GridRowParams<IProject>) => handleOpenDetails(params.row.id)}
         slots={{
           noRowsOverlay: () => <EmptyContent title="No projects" />,
@@ -345,44 +616,49 @@ export function ProjectListView() {
         <OverviewStatCard title="Archived" value={overviewStats.archived} />
       </Grid>
       <Grid xs={12} sm={6} md={4}>
-        <OverviewStatCard title="Templates" value={overviewStats.templates} />
+        <OverviewStatCardLink
+          title="Templates"
+          value={overviewStats.templates}
+          href={paths.dashboard.project.templates.root}
+        />
       </Grid>
       <Grid xs={12} sm={6} md={4}>
-        <OverviewStatCard title="Recurring" value={overviewStats.recurring} />
+        <OverviewStatCardLink
+          title="Recurring"
+          value={overviewStats.recurring}
+          href={paths.dashboard.project.recurringProjects.root}
+        />
       </Grid>
     </Grid>
   );
 
+  const showToolbarFiltersRow = browseMode.kind === 'module' || defaultModuleTab !== 'overview';
+
+  const emptyCaption =
+    listBrowseTab === 'overview'
+      ? 'No projects'
+      : EMPTY_TITLE[listBrowseTab as Exclude<BrowseListTab, 'overview'>];
+
+  const tabRowTitle =
+    browseMode.kind === 'module'
+      ? browseMode.moduleKey === 'templates'
+        ? 'Templates'
+        : 'Recurring projects'
+      : null;
+
   return (
     <>
       <DashboardContent>
-        <CustomBreadcrumbs
-          links={[
-            { name: 'Dashboard', href: paths.dashboard.root },
-            { name: 'Projects', href: paths.dashboard.project.root },
-            { name: 'List' },
-          ]}
-          action={
-            <Can perm="project:create">
-              <Button
-                component={RouterLink}
-                href={paths.dashboard.project.new}
-                variant="contained"
-                startIcon={<Iconify icon="mingcute:add-line" />}
-              >
-                New project
-              </Button>
-            </Can>
-          }
-          sx={{ mb: { xs: 2, md: 3 } }}
-        />
 
-        {canReset && moduleTab !== 'overview' && (
+        {canReset &&
+          listBrowseTab !== 'overview' && (
           <ProjectListFiltersResult
             totalResults={dataFiltered.length}
             priorities={priorities}
             startDate={filterStartDate}
             endDate={filterEndDate}
+            search={search}
+            onRemoveSearch={handleClearProjectSearch}
             onReset={resetDrawerFilters}
             onRemovePriority={(p) =>
               setFilter(SCREEN_KEY, { priorities: priorities.filter((x) => x !== p) })
@@ -401,24 +677,34 @@ export function ProjectListView() {
           spacing={2}
           sx={{ mb: 2.5 }}
         >
-          <Tabs
-            value={moduleTab}
-            onChange={handleModuleTabChange}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              boxShadow: (theme) =>
-                `inset 0 -2px 0 0 ${varAlpha(theme.vars.palette.grey['500Channel'], 0.08)}`,
-            }}
-          >
-            {MODULE_TABS.map((t) => (
-              <Tab key={t.value} value={t.value} label={t.label} />
-            ))}
-          </Tabs>
+          {browseMode.kind === 'default' ? (
+            <Tabs
+              value={defaultModuleTab}
+              onChange={handleModuleTabChange}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                boxShadow: (theme) =>
+                  `inset 0 -2px 0 0 ${varAlpha(theme.vars.palette.grey['500Channel'], 0.08)}`,
+              }}
+            >
+              {DEFAULT_MODULE_TABS.map((t) => (
+                <Tab
+                  key={t.value}
+                  value={t.value}
+                  label={`${t.label} (${moduleTabCounts[t.value]})`}
+                />
+              ))}
+            </Tabs>
+          ) : (
+            <Typography variant="h6" sx={{ flex: 1, minWidth: 0 }}>
+              {tabRowTitle}
+            </Typography>
+          )}
 
-          {moduleTab !== 'overview' && (
+          {showToolbarFiltersRow && (
             <Stack direction="row" alignItems="center" spacing={1} sx={{ flexShrink: 0, mb: 0.5 }}>
               <Tooltip title="Filters">
                 <IconButton onClick={openFilters.onTrue}>
@@ -445,7 +731,7 @@ export function ProjectListView() {
           )}
         </Stack>
 
-        {moduleTab === 'overview' ? (
+        {listBrowseTab === 'overview' ? (
           projectsLoading ? (
             <EmptyContent title="Loading…" sx={{ py: 10 }} />
           ) : (
@@ -456,13 +742,65 @@ export function ProjectListView() {
             {projectsEmpty ? (
               <EmptyContent title="No projects" sx={{ py: 10 }} />
             ) : notFound ? (
-              <EmptyContent title={EMPTY_TITLE[moduleTab]} sx={{ py: 10 }} />
+              searchTrimmed ? (
+                <EmptyContent
+                  title="No matching projects"
+                  description={`Nothing matches “${searchTrimmed}” in ${browseContextLabel}. Try different keywords or clear the search.`}
+                  action={
+                    <Button variant="outlined" color="inherit" onClick={handleClearProjectSearch}>
+                      Clear search
+                    </Button>
+                  }
+                  sx={{ py: 10 }}
+                />
+              ) : (
+                <EmptyContent title={emptyCaption} sx={{ py: 10 }} />
+              )
             ) : (
-              <>{view === 'list' ? renderList : renderGrid}</>
+              <>{view === 'list' ? (
+                <>
+                  {bulkSelectionEligible && !notFound && (
+                    <BulkSelectionToolbar
+                      selectedCount={selectedBulkRowIds.length}
+                      secondaryNote={
+                        bulkSkippedByPolicy > 0
+                          ? `${bulkSkippedByPolicy} not editable for you`
+                          : undefined
+                      }
+                      actions={
+                        <Can perm="project:update">
+                          <Button
+                            variant="contained"
+                            size="small"
+                            disabled={
+                              selectedBulkRowIds.length === 0 || bulkEditableIds.length === 0
+                            }
+                            startIcon={<Iconify icon="solar:pen-bold" />}
+                            onClick={handleOpenBulkDialog}
+                          >
+                             update
+                          </Button>
+                        </Can>
+                      }
+                    />
+                  )}
+                  {renderList}
+                </>
+              ) : (
+                renderGrid
+              )}</>
             )}
           </>
         )}
       </DashboardContent>
+
+      <ProjectBulkUpdateDialog
+        open={bulkDialog.value}
+        editableProjectIds={bulkEditableIds}
+        projectsSnapshot={projects}
+        onClose={bulkDialog.onFalse}
+        onApplied={handleBulkApplied}
+      />
 
       <ProjectListFilters
         open={openFilters.value}

@@ -10,6 +10,8 @@ import { useGetProjects } from 'src/actions/project';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { SeoIllustration } from 'src/assets/illustrations';
 
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
+
 import { AppWelcome } from 'src/sections/overview/app/app-welcome';
 import { AppAreaInstalled } from 'src/sections/overview/app/app-area-installed';
 import { AppWidgetSummary } from 'src/sections/overview/app/app-widget-summary';
@@ -28,6 +30,8 @@ export function OverviewSuperAdminView() {
   const theme = useTheme();
 
   const { projects } = useGetProjects();
+
+  useSetDashboardBreadcrumbs([breadcrumbHomeLink, { name: 'Overview' }], undefined, []);
 
   return (
     <DashboardContent>

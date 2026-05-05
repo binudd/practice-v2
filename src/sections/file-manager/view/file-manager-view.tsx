@@ -21,6 +21,11 @@ import { fileFormat } from 'src/components/file-thumbnail';
 import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { useTable, rowInPage, getComparator } from 'src/components/table';
+import {
+  breadcrumbHomeLink,
+  useSetDashboardBreadcrumbs,
+  DashboardToolbarPrimaryButton,
+} from 'src/components/dashboard-breadcrumbs';
 
 import { FileManagerTable } from '../file-manager-table';
 import { FileManagerFilters } from '../file-manager-filters';
@@ -103,6 +108,17 @@ export function FileManagerView() {
     });
   }, [dataFiltered.length, dataInPage.length, table, tableData]);
 
+  useSetDashboardBreadcrumbs(
+    [breadcrumbHomeLink, { name: 'File manager' }],
+    <DashboardToolbarPrimaryButton
+      startIcon={<Iconify icon="eva:cloud-upload-fill" />}
+      onClick={upload.onTrue}
+    >
+      Upload
+    </DashboardToolbarPrimaryButton>,
+    [upload.onTrue]
+  );
+
   const renderFilters = (
     <Stack
       spacing={2}
@@ -142,16 +158,6 @@ export function FileManagerView() {
   return (
     <>
       <DashboardContent>
-        <Stack direction="row" alignItems="center" justifyContent="flex-end">
-          <Button
-            variant="contained"
-            startIcon={<Iconify icon="eva:cloud-upload-fill" />}
-            onClick={upload.onTrue}
-          >
-            Upload
-          </Button>
-        </Stack>
-
         <Stack spacing={2.5} sx={{ my: { xs: 3, md: 5 } }}>
           {renderFilters}
 

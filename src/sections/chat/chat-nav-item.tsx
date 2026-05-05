@@ -5,7 +5,6 @@ import { useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Badge from '@mui/material/Badge';
-import Avatar from '@mui/material/Avatar';
 import Typography from '@mui/material/Typography';
 import AvatarGroup from '@mui/material/AvatarGroup';
 import ListItemText from '@mui/material/ListItemText';
@@ -19,6 +18,8 @@ import { useResponsive } from 'src/hooks/use-responsive';
 import { fToNow } from 'src/utils/format-time';
 
 import { clickConversation } from 'src/actions/chat';
+
+import { UserAvatar } from 'src/components/user-avatar';
 
 import { useMockedUser } from 'src/auth/hooks';
 
@@ -68,7 +69,7 @@ export function ChatNavItem({ selected, collapse, conversation, onCloseMobile }:
     >
       <AvatarGroup variant="compact" sx={{ width: 48, height: 48 }}>
         {participants.slice(0, 2).map((participant) => (
-          <Avatar key={participant.id} alt={participant.name} src={participant.avatarUrl} />
+          <UserAvatar key={participant.id} name={participant.name} src={participant.avatarUrl} />
         ))}
       </AvatarGroup>
     </Badge>
@@ -76,7 +77,7 @@ export function ChatNavItem({ selected, collapse, conversation, onCloseMobile }:
 
   const renderSingle = (
     <Badge key={status} variant={status} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-      <Avatar alt={name} src={avatarUrl} sx={{ width: 48, height: 48 }} />
+      <UserAvatar name={name} src={avatarUrl} sx={{ width: 48, height: 48 }} />
     </Badge>
   );
 

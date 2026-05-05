@@ -4,6 +4,8 @@ export type ITimesheetEntry = {
   projectId: string;
   date: string;
   hours: number;
+  /** Defaults to true when omitted (legacy entries). */
+  billable?: boolean;
   note?: string;
   taskId?: string;
   taskName?: string;

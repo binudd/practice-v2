@@ -92,9 +92,10 @@ export function TimesheetTable({
     <TableContainer
       component={Box}
       sx={{
-        borderRadius: 2,
-        border: (theme) => `1px solid ${theme.vars.palette.divider}`,
-        overflow: 'auto',
+        width: 1,
+        borderRadius: 0,
+        overflowX: 'auto',
+        overflowY: 'visible',
       }}
     >
       <Table size="small" stickyHeader>

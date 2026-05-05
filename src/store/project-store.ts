@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import axios from 'src/utils/axios';
+import axios, { endpoints } from 'src/utils/axios';
 import { useUserStore } from 'src/store/user-store';
 import type { IProject } from 'src/domain/project';
 
@@ -72,7 +72,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const response = await axios.get(`/api/Project/v2/GetList?tenantId=${tenantID}`, {
+      const response = await axios.get(endpoints.project.list + `?tenantId=${tenantID}`, {
         headers: {
           'X-Page-Number': 1,
           'X-Page-Size': 20,

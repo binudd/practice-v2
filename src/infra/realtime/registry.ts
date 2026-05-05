@@ -22,17 +22,17 @@ export function registerDefaultHandlers(adapter: RealtimeAdapter): Unsubscribe {
   // Projects list cache.
   unsubs.push(
     adapter.subscribe('project.updated', () => {
-      mutate(endpoints.project);
+      mutate(endpoints.project.list);
     })
   );
   unsubs.push(
     adapter.subscribe('project.created', () => {
-      mutate(endpoints.project);
+      mutate(endpoints.project.list);
     })
   );
   unsubs.push(
     adapter.subscribe('project.deleted', () => {
-      mutate(endpoints.project);
+      mutate(endpoints.project.list);
     })
   );
 

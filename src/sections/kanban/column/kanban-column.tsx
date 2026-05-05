@@ -24,9 +24,11 @@ type ColumnProps = {
   tasks: IKanbanTask[];
   column: IKanbanColumn;
   children: React.ReactNode;
+  /** Scope for SWR-backed board mutations */
+  boardProjectId?: string;
 };
 
-export function KanbanColumn({ children, column, tasks, disabled, sx }: ColumnProps) {
+export function KanbanColumn({ children, column, tasks, disabled, boardProjectId, sx }: ColumnProps) {
   const openAddTask = useBoolean();
 
   const { attributes, isDragging, listeners, setNodeRef, transition, active, over, transform } =
@@ -47,7 +49,7 @@ export function KanbanColumn({ children, column, tasks, disabled, sx }: ColumnPr
     async (columnName: string) => {
       try {
         if (column.name !== columnName) {
-          updateColumn(column.id, columnName);
+          updateColumn(column.id, columnName, boardProjectId);
 
           toast.success('Update success!', { position: 'top-center' });
         }
@@ -55,38 +57,38 @@ export function KanbanColumn({ children, column, tasks, disabled, sx }: ColumnPr
         console.error(error);
       }
     },
-    [column.id, column.name]
+    [boardProjectId, column.id, column.name]
   );
 
   const handleClearColumn = useCallback(async () => {
     try {
-      clearColumn(column.id);
+      clearColumn(column.id, boardProjectId);
     } catch (error) {
       console.error(error);
     }
-  }, [column.id]);
+  }, [boardProjectId, column.id]);
 
   const handleDeleteColumn = useCallback(async () => {
     try {
-      deleteColumn(column.id);
+      deleteColumn(column.id, boardProjectId);
 
       toast.success('Delete success!', { position: 'top-center' });
     } catch (error) {
       console.error(error);
     }
-  }, [column.id]);
+  }, [boardProjectId, column.id]);
 
   const handleAddTask = useCallback(
     async (taskData: IKanbanTask) => {
       try {
-        createTask(column.id, taskData);
+        createTask(column.id, taskData, boardProjectId);
 
         openAddTask.onFalse();
       } catch (error) {
         console.error(error);
       }
     },
-    [column.id, openAddTask]
+    [boardProjectId, column.id, openAddTask]
   );
 
   return (

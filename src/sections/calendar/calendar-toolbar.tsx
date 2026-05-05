@@ -7,11 +7,16 @@ import Button from '@mui/material/Button';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
-import LinearProgress from '@mui/material/LinearProgress';
 
 import { Iconify } from 'src/components/iconify';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
+import {
+  DateNavTitle,
+  DateToolbarRow,
+  DateNavArrowBack,
+  PrimaryTodayButton,
+  DateNavArrowForward,
+} from 'src/components/date-nav';
 
 // ----------------------------------------------------------------------
 
@@ -53,12 +58,7 @@ export function CalendarToolbar({
 
   return (
     <>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ p: 2.5, pr: 2, position: 'relative' }}
-      >
+      <DateToolbarRow loading={loading}>
         <Button
           size="small"
           color="inherit"
@@ -71,21 +71,13 @@ export function CalendarToolbar({
         </Button>
 
         <Stack direction="row" alignItems="center" spacing={1}>
-          <IconButton onClick={onPrevDate}>
-            <Iconify icon="eva:arrow-ios-back-fill" />
-          </IconButton>
-
-          <Typography variant="h6">{date}</Typography>
-
-          <IconButton onClick={onNextDate}>
-            <Iconify icon="eva:arrow-ios-forward-fill" />
-          </IconButton>
+          <DateNavArrowBack onClick={onPrevDate} />
+          <DateNavTitle>{date}</DateNavTitle>
+          <DateNavArrowForward onClick={onNextDate} />
         </Stack>
 
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Button size="small" color="error" variant="contained" onClick={onToday}>
-            Today
-          </Button>
+          <PrimaryTodayButton onClick={onToday}>Today</PrimaryTodayButton>
 
           <IconButton onClick={onOpenFilters}>
             <Badge color="error" variant="dot" invisible={!canReset}>
@@ -93,21 +85,7 @@ export function CalendarToolbar({
             </Badge>
           </IconButton>
         </Stack>
-
-        {loading && (
-          <LinearProgress
-            color="inherit"
-            sx={{
-              left: 0,
-              width: 1,
-              height: 2,
-              bottom: 0,
-              borderRadius: 0,
-              position: 'absolute',
-            }}
-          />
-        )}
-      </Stack>
+      </DateToolbarRow>
 
       <CustomPopover
         open={popover.open}

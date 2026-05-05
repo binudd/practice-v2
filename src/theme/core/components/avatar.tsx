@@ -2,6 +2,8 @@ import type { Theme, Components, ComponentsVariants } from '@mui/material/styles
 
 import { avatarGroupClasses } from '@mui/material/AvatarGroup';
 
+import { paletteVariantKeyFromSeed } from 'src/utils/avatar-display';
+
 import { varAlpha } from '../../styles';
 
 // ----------------------------------------------------------------------
@@ -14,18 +16,6 @@ declare module '@mui/material/AvatarGroup' {
 }
 
 const COLORS = ['primary', 'secondary', 'info', 'success', 'warning', 'error'] as const;
-
-const colorByName = (name: string) => {
-  const charAt = name.charAt(0).toLowerCase();
-
-  if (['a', 'c', 'f'].includes(charAt)) return 'primary';
-  if (['e', 'd', 'h'].includes(charAt)) return 'secondary';
-  if (['i', 'k', 'l'].includes(charAt)) return 'info';
-  if (['m', 'n', 'p'].includes(charAt)) return 'success';
-  if (['q', 's', 't'].includes(charAt)) return 'warning';
-  if (['v', 'x', 'y'].includes(charAt)) return 'error';
-  return 'default';
-};
 
 // ----------------------------------------------------------------------
 
@@ -60,20 +50,17 @@ const MuiAvatar: Components<Theme>['MuiAvatar'] = {
   styleOverrides: {
     rounded: ({ theme }) => ({ borderRadius: theme.shape.borderRadius * 1.5 }),
     colorDefault: ({ ownerState, theme }) => {
-      const color = colorByName(`${ownerState.alt}`);
-
+      const seed = `${ownerState.alt ?? ''}`.trim();
+      if (!seed) {
+        return {
+          color: theme.vars.palette.text.secondary,
+          backgroundColor: varAlpha(theme.vars.palette.grey['500Channel'], 0.24),
+        };
+      }
+      const variant = paletteVariantKeyFromSeed(seed);
       return {
-        ...(!!ownerState.alt && {
-          ...(color !== 'default'
-            ? {
-                color: theme.vars.palette[color].contrastText,
-                backgroundColor: theme.vars.palette[color].main,
-              }
-            : {
-                color: theme.vars.palette.text.secondary,
-                backgroundColor: varAlpha(theme.vars.palette.grey['500Channel'], 0.24),
-              }),
-        }),
+        color: theme.vars.palette[variant].contrastText,
+        backgroundColor: theme.vars.palette[variant].main,
       };
     },
   },

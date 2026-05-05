@@ -56,6 +56,7 @@ export function LayoutSection({
               display="flex"
               flex="1 1 auto"
               flexDirection="column"
+              minHeight={0}
               className={layoutClasses.hasSidebar}
             >
               {headerSection}

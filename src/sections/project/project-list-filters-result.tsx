@@ -20,6 +20,8 @@ type Props = {
   priorities: IProjectPriority[];
   startDate: IDatePickerControl;
   endDate: IDatePickerControl;
+  search?: string;
+  onRemoveSearch?: () => void;
   onRemovePriority: (value: IProjectPriority) => void;
   onRemoveDateRange: () => void;
   onReset: () => void;
@@ -31,6 +33,8 @@ export function ProjectListFiltersResult({
   priorities,
   startDate,
   endDate,
+  search = '',
+  onRemoveSearch,
   onRemovePriority,
   onRemoveDateRange,
   onReset,
@@ -44,6 +48,15 @@ export function ProjectListFiltersResult({
 
   return (
     <FiltersResult totalResults={totalResults} onReset={onReset} sx={sx}>
+      <FiltersBlock label="Search:" isShow={Boolean(search.trim()) && Boolean(onRemoveSearch)}>
+        <Chip
+          {...chipProps}
+          label={search.trim()}
+          onDelete={() => onRemoveSearch?.()}
+          sx={{ maxWidth: 1 }}
+        />
+      </FiltersBlock>
+
       <FiltersBlock label="Priority:" isShow={priorities.length > 0}>
         {priorities.map((item) => (
           <Chip

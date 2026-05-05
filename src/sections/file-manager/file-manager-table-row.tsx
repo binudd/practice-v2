@@ -4,7 +4,6 @@ import { useState, useCallback } from 'react';
 
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
@@ -28,6 +27,7 @@ import { varAlpha } from 'src/theme/styles';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { UserAvatar } from 'src/components/user-avatar';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { FileThumbnail } from 'src/components/file-thumbnail';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
@@ -168,7 +168,7 @@ export function FileManagerTableRow({ row, selected, onSelectRow, onDeleteRow }:
           >
             {row.shared &&
               row.shared.map((person) => (
-                <Avatar key={person.id} alt={person.name} src={person.avatarUrl} />
+                <UserAvatar key={person.id} name={person.name} src={person.avatarUrl} />
               ))}
           </AvatarGroup>
         </TableCell>

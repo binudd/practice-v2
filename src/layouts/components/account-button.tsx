@@ -8,6 +8,8 @@ import SvgIcon from '@mui/material/SvgIcon';
 import { useTheme } from '@mui/material/styles';
 import IconButton from '@mui/material/IconButton';
 
+import { nameToInitials } from 'src/utils/avatar-display';
+
 import { varHover, AnimateAvatar } from 'src/components/animate';
 
 // ----------------------------------------------------------------------
@@ -60,7 +62,7 @@ export function AccountButton({ open, photoURL, displayName, sx, ...other }: Acc
             },
           }}
         >
-          {displayName?.charAt(0).toUpperCase()}
+          {nameToInitials(displayName ?? '')}
         </AnimateAvatar>
       </NoSsr>
     </IconButton>

@@ -1,5 +1,5 @@
 import { _mock } from './_mock';
-import { _roleUsers } from './_user';
+import { _userList, _roleUsers } from './_user';
 
 // ----------------------------------------------------------------------
 
@@ -30,20 +30,27 @@ export const _projects = [...Array(8)].map((_, index) => {
   const total = 20 + index * 3;
   const completed = Math.min(total, 5 + index * 3);
   const memberCount = 3 + (index % 5);
+  const leader = _userList[(index + 1) % _userList.length];
+  const status = STATUSES[index];
 
   return {
     id: _mock.id(index + 20),
     name: _mock.taskNames(index),
     code: `PRJ-${String(1000 + index)}`,
-    status: STATUSES[index],
+    status,
+    createdAt: _mock.time(index + 24),
     startDate: _mock.time(index),
     endDate: _mock.time(index + 5),
+    ...(status === 'completed' ? { completionDate: _mock.time(index + 1) } : {}),
     ownerId: _mock.id(index),
     ownerName: _mock.fullName(index),
+    projectLeaderId: leader.id,
+    projectLeaderName: leader.name,
     members: [...Array(memberCount)].map((__, m) => _mock.id(index + m + 1)),
     // Every 2nd project belongs to the canonical client so the Client role has
     // something to look at. Production code will use the real tenant/client id.
     clientId: index % 2 === 0 ? CLIENT_USER_ID : _mock.id(index + 50),
+    clientCompanyName: _userList[(index + 3) % _userList.length].company,
     description: _mock.sentence(index),
     progress: Math.round((completed / total) * 100),
     totalTasks: total,
@@ -52,5 +59,15 @@ export const _projects = [...Array(8)].map((_, index) => {
     isFavorite: index % 3 === 0,
     isTemplate: index === 2 || index === 5,
     isRecurring: index === 1 || index === 4,
+    budgetType: ['fixed', 'time_expenses', 'non_billable'][index % 3] as
+      | 'fixed'
+      | 'time_expenses'
+      | 'non_billable',
+    budgetHours: 400 + index * 55,
+    budgetAmount: 12000 + index * 8250,
+    actualHours: 280 + index * 42,
+    actualAmount: 9800 + index * 6100,
+    dailyHours: 7 + ((index % 4) + 1) * 0.25,
+    needsReviewTaskCount: index % 5,
   };
 });

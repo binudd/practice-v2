@@ -5,8 +5,6 @@ import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
-import { paths } from 'src/routes/paths';
-
 import { DashboardContent } from 'src/layouts/dashboard';
 import { _userList } from 'src/_mock';
 
@@ -14,7 +12,7 @@ import { useUserStore } from 'src/store/user-store';
 import { useMenuStore } from 'src/store/menu-store';
 
 import { CustomTabs } from 'src/components/custom-tabs';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { MenuPermissionsMatrix } from '../menu-permissions-matrix';
 
@@ -66,13 +64,10 @@ export function SettingsView() {
     }
   }, [tenantID, fetchMenus, fetchRoles]);
 
+  useSetDashboardBreadcrumbs([breadcrumbHomeLink, { name: 'Settings' }], undefined, []);
+
   return (
     <DashboardContent>
-      <CustomBreadcrumbs
-        links={[{ name: 'Dashboard', href: paths.dashboard.root }, { name: 'Settings' }]}
-        sx={{ mb: { xs: 3, md: 5 } }}
-      />
-
       <CustomTabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
         {TABS.map((t) => (
           <Tab key={t.value} value={t.value} label={t.label} />

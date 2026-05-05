@@ -10,6 +10,8 @@ import { useGetProjects } from 'src/actions/project';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { SeoIllustration } from 'src/assets/illustrations';
 
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
+
 import { AppWelcome } from 'src/sections/overview/app/app-welcome';
 import { AppNewInvoice } from 'src/sections/overview/app/app-new-invoice';
 import { AppAreaInstalled } from 'src/sections/overview/app/app-area-installed';
@@ -25,6 +27,8 @@ export function OverviewAdminView() {
   const theme = useTheme();
 
   const { projects } = useGetProjects();
+
+  useSetDashboardBreadcrumbs([breadcrumbHomeLink, { name: 'Overview' }], undefined, []);
 
   const activeProjects = projects.filter((p) => p.status === 'active').length;
   const totalTasks = projects.reduce((sum, p) => sum + p.totalTasks, 0);

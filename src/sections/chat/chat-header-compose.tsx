@@ -5,7 +5,6 @@ import { useState, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -13,6 +12,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import { varAlpha } from 'src/theme/styles';
 
 import { Iconify } from 'src/components/iconify';
+import { UserAvatar } from 'src/components/user-avatar';
 import { SearchNotFound } from 'src/components/search-not-found';
 
 // ----------------------------------------------------------------------
@@ -66,7 +66,7 @@ export function ChatHeaderCompose({ contacts, onAddRecipients }: Props) {
                 position: 'relative',
               }}
             >
-              <Avatar alt={recipient.name} src={recipient.avatarUrl} sx={{ width: 1, height: 1 }} />
+              <UserAvatar name={recipient.name} src={recipient.avatarUrl} sx={{ width: 1, height: 1 }} />
               <Stack
                 alignItems="center"
                 justifyContent="center"
@@ -99,7 +99,7 @@ export function ChatHeaderCompose({ contacts, onAddRecipients }: Props) {
               {...getTagProps({ index })}
               key={recipient.id}
               label={recipient.name}
-              avatar={<Avatar alt={recipient.name} src={recipient.avatarUrl} />}
+              avatar={<UserAvatar name={recipient.name} src={recipient.avatarUrl} />}
               size="small"
               variant="soft"
             />

@@ -6,6 +6,12 @@ import useSWR, { mutate } from 'swr';
 
 import axios, { fetcher, endpoints } from 'src/utils/axios';
 
+import {
+  isKanbanBulkMergeEmpty,
+  mergeKanbanTaskBulkPatch,
+  type KanbanBulkMergeInput,
+} from 'src/domain/kanban/bulk-task-patch';
+
 // ----------------------------------------------------------------------
 
 const enableServer = false;
@@ -24,8 +30,31 @@ type BoardData = {
   board: IKanban;
 };
 
+export type KanbanBulkTaskTarget = {
+  columnId: UniqueIdentifier;
+  taskId: UniqueIdentifier;
+};
+
+export function getKanbanSwrKey(kanbanBoardProjectId?: string): string {
+  return kanbanBoardProjectId ? `${KANBAN_ENDPOINT}?projectId=${kanbanBoardProjectId}` : KANBAN_ENDPOINT;
+}
+
+function mutateKanban(
+  kanbanBoardProjectId: string | undefined,
+  updater: (currentData: BoardData) => BoardData
+) {
+  mutate(
+    getKanbanSwrKey(kanbanBoardProjectId),
+    (currentData) => {
+      if (!currentData) return currentData;
+      return updater(currentData as BoardData);
+    },
+    false
+  );
+}
+
 export function useGetBoard(projectId?: string) {
-  const endpoint = projectId ? `${KANBAN_ENDPOINT}?projectId=${projectId}` : KANBAN_ENDPOINT;
+  const endpoint = getKanbanSwrKey(projectId);
 
   const { data, isLoading, error, isValidating } = useSWR<BoardData>(
     endpoint,
@@ -51,89 +80,58 @@ export function useGetBoard(projectId?: string) {
 
 // ----------------------------------------------------------------------
 
-export async function createColumn(columnData: IKanbanColumn) {
-  /**
-   * Work on server
-   */
+export async function createColumn(
+  columnData: IKanbanColumn,
+  kanbanBoardProjectId?: string
+) {
   if (enableServer) {
     const data = { columnData };
     await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'create-column' } });
   }
 
-  /**
-   * Work in local
-   */
-  mutate(
-    KANBAN_ENDPOINT,
-    (currentData) => {
-      const { board } = currentData as BoardData;
+  mutateKanban(kanbanBoardProjectId, (currentData) => {
+    const { board } = currentData;
 
-      // add new column in board.columns
-      const columns = [...board.columns, columnData];
+    const columns = [...board.columns, columnData];
 
-      // add new task in board.tasks
-      const tasks = { ...board.tasks, [columnData.id]: [] };
+    const tasks = { ...board.tasks, [columnData.id]: [] };
 
-      return { ...currentData, board: { ...board, columns, tasks } };
-    },
-    false
-  );
+    return { ...currentData, board: { ...board, columns, tasks } };
+  });
 }
 
 // ----------------------------------------------------------------------
 
-export async function updateColumn(columnId: UniqueIdentifier, columnName: string) {
-  /**
-   * Work on server
-   */
+export async function updateColumn(
+  columnId: UniqueIdentifier,
+  columnName: string,
+  kanbanBoardProjectId?: string
+) {
   if (enableServer) {
     const data = { columnId, columnName };
     await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'update-column' } });
   }
 
-  /**
-   * Work in local
-   */
-  mutate(
-    KANBAN_ENDPOINT,
-    (currentData) => {
-      const { board } = currentData as BoardData;
+  mutateKanban(kanbanBoardProjectId, (currentData) => {
+    const { board } = currentData;
 
-      const columns = board.columns.map((column) =>
-        column.id === columnId
-          ? {
-              // Update data when found
-              ...column,
-              name: columnName,
-            }
-          : column
-      );
+    const columns = board.columns.map((column) =>
+      column.id === columnId ? { ...column, name: columnName } : column
+    );
 
-      return { ...currentData, board: { ...board, columns } };
-    },
-    false
-  );
+    return { ...currentData, board: { ...board, columns } };
+  });
 }
 
 // ----------------------------------------------------------------------
 
-export async function moveColumn(updateColumns: IKanbanColumn[]) {
-  /**
-   * Work in local
-   */
-  mutate(
-    KANBAN_ENDPOINT,
-    (currentData) => {
-      const { board } = currentData as BoardData;
+export async function moveColumn(updateColumns: IKanbanColumn[], kanbanBoardProjectId?: string) {
+  mutateKanban(kanbanBoardProjectId, (currentData) => {
+    const { board } = currentData;
 
-      return { ...currentData, board: { ...board, columns: updateColumns } };
-    },
-    false
-  );
+    return { ...currentData, board: { ...board, columns: updateColumns } };
+  });
 
-  /**
-   * Work on server
-   */
   if (enableServer) {
     const data = { updateColumns };
     await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'move-column' } });
@@ -142,159 +140,107 @@ export async function moveColumn(updateColumns: IKanbanColumn[]) {
 
 // ----------------------------------------------------------------------
 
-export async function clearColumn(columnId: UniqueIdentifier) {
-  /**
-   * Work on server
-   */
+export async function clearColumn(columnId: UniqueIdentifier, kanbanBoardProjectId?: string) {
   if (enableServer) {
     const data = { columnId };
     await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'clear-column' } });
   }
 
-  /**
-   * Work in local
-   */
-  mutate(
-    KANBAN_ENDPOINT,
-    (currentData) => {
-      const { board } = currentData as BoardData;
+  mutateKanban(kanbanBoardProjectId, (currentData) => {
+    const { board } = currentData;
 
-      // remove all tasks in column
-      const tasks = { ...board.tasks, [columnId]: [] };
+    const tasks = { ...board.tasks, [columnId]: [] };
 
-      return { ...currentData, board: { ...board, tasks } };
-    },
-    false
-  );
+    return { ...currentData, board: { ...board, tasks } };
+  });
 }
 
 // ----------------------------------------------------------------------
 
-export async function deleteColumn(columnId: UniqueIdentifier) {
-  /**
-   * Work on server
-   */
+export async function deleteColumn(columnId: UniqueIdentifier, kanbanBoardProjectId?: string) {
   if (enableServer) {
     const data = { columnId };
     await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'delete-column' } });
   }
 
-  /**
-   * Work in local
-   */
-  mutate(
-    KANBAN_ENDPOINT,
-    (currentData) => {
-      const { board } = currentData as BoardData;
+  mutateKanban(kanbanBoardProjectId, (currentData) => {
+    const { board } = currentData;
 
-      // delete column in board.columns
-      const columns = board.columns.filter((column) => column.id !== columnId);
+    const columns = board.columns.filter((column) => column.id !== columnId);
 
-      // delete tasks by column deleted
-      const tasks = Object.keys(board.tasks)
-        .filter((key) => key !== columnId)
-        .reduce((obj: IKanban['tasks'], key) => {
-          obj[key] = board.tasks[key];
-          return obj;
-        }, {});
+    const tasks = Object.keys(board.tasks)
+      .filter((key) => key !== columnId)
+      .reduce((obj: IKanban['tasks'], key) => {
+        obj[key] = board.tasks[key];
+        return obj;
+      }, {});
 
-      return { ...currentData, board: { ...board, columns, tasks } };
-    },
-    false
-  );
+    return { ...currentData, board: { ...board, columns, tasks } };
+  });
 }
 
 // ----------------------------------------------------------------------
 
-export async function createTask(columnId: UniqueIdentifier, taskData: IKanbanTask) {
-  /**
-   * Work on server
-   */
+export async function createTask(
+  columnId: UniqueIdentifier,
+  taskData: IKanbanTask,
+  kanbanBoardProjectId?: string
+) {
   if (enableServer) {
     const data = { columnId, taskData };
     await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'create-task' } });
   }
 
-  /**
-   * Work in local
-   */
-  mutate(
-    KANBAN_ENDPOINT,
-    (currentData) => {
-      const { board } = currentData as BoardData;
+  mutateKanban(kanbanBoardProjectId, (currentData) => {
+    const { board } = currentData;
 
-      // add task in board.tasks
-      const tasks = { ...board.tasks, [columnId]: [taskData, ...board.tasks[columnId]] };
+    const columnTasks = board.tasks[columnId] ?? [];
+    const tasks = {
+      ...board.tasks,
+      [columnId]: [taskData, ...columnTasks],
+    };
 
-      return { ...currentData, board: { ...board, tasks } };
-    },
-    false
-  );
+    return { ...currentData, board: { ...board, tasks } };
+  });
 }
 
 // ----------------------------------------------------------------------
 
-export async function updateTask(columnId: UniqueIdentifier, taskData: IKanbanTask) {
-  /**
-   * Work on server
-   */
+export async function updateTask(
+  columnId: UniqueIdentifier,
+  taskData: IKanbanTask,
+  kanbanBoardProjectId?: string
+) {
   if (enableServer) {
     const data = { columnId, taskData };
     await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'update-task' } });
   }
 
-  /**
-   * Work in local
-   */
-  mutate(
-    KANBAN_ENDPOINT,
-    (currentData) => {
-      const { board } = currentData as BoardData;
+  mutateKanban(kanbanBoardProjectId, (currentData) => {
+    const { board } = currentData;
 
-      // tasks in column
-      const tasksInColumn = board.tasks[columnId];
+    const tasksInColumn = board.tasks[columnId];
 
-      // find and update task
-      const updateTasks = tasksInColumn.map((task) =>
-        task.id === taskData.id
-          ? {
-              // Update data when found
-              ...task,
-              ...taskData,
-            }
-          : task
-      );
+    const updateTasks =
+      tasksInColumn?.map((task) =>
+        task.id === taskData.id ? { ...task, ...taskData } : task
+      ) ?? [];
 
-      const tasks = { ...board.tasks, [columnId]: updateTasks };
+    const tasks = { ...board.tasks, [columnId]: updateTasks };
 
-      return { ...currentData, board: { ...board, tasks } };
-    },
-    false
-  );
+    return { ...currentData, board: { ...board, tasks } };
+  });
 }
 
 // ----------------------------------------------------------------------
 
-export async function moveTask(updateTasks: IKanban['tasks']) {
-  /**
-   * Work in local
-   */
-  mutate(
-    KANBAN_ENDPOINT,
-    (currentData) => {
-      const { board } = currentData as BoardData;
+export async function moveTask(updateTasks: IKanban['tasks'], kanbanBoardProjectId?: string) {
+  mutateKanban(kanbanBoardProjectId, (currentData) => {
+    const { board } = currentData;
 
-      // update board.tasks
-      const tasks = updateTasks;
+    return { ...currentData, board: { ...board, tasks: updateTasks } };
+  });
 
-      return { ...currentData, board: { ...board, tasks } };
-    },
-    false
-  );
-
-  /**
-   * Work on server
-   */
   if (enableServer) {
     const data = { updateTasks };
     await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'move-task' } });
@@ -303,31 +249,79 @@ export async function moveTask(updateTasks: IKanban['tasks']) {
 
 // ----------------------------------------------------------------------
 
-export async function deleteTask(columnId: UniqueIdentifier, taskId: UniqueIdentifier) {
-  /**
-   * Work on server
-   */
+export async function deleteTask(
+  columnId: UniqueIdentifier,
+  taskId: UniqueIdentifier,
+  kanbanBoardProjectId?: string
+) {
   if (enableServer) {
     const data = { columnId, taskId };
     await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'delete-task' } });
   }
 
-  /**
-   * Work in local
-   */
-  mutate(
-    KANBAN_ENDPOINT,
-    (currentData) => {
-      const { board } = currentData as BoardData;
+  mutateKanban(kanbanBoardProjectId, (currentData) => {
+    const { board } = currentData;
 
-      // delete task in column
-      const tasks = {
-        ...board.tasks,
-        [columnId]: board.tasks[columnId].filter((task) => task.id !== taskId),
-      };
+    const tasks = {
+      ...board.tasks,
+      [columnId]: board.tasks[columnId]?.filter((task) => task.id !== taskId) ?? [],
+    };
 
-      return { ...currentData, board: { ...board, tasks } };
-    },
-    false
-  );
+    return { ...currentData, board: { ...board, tasks } };
+  });
 }
+
+export type BulkUpdateKanbanTasksResult = { updated: number; skipped: number };
+
+/**
+ * Applies the same merged patch shape to multiple tasks.Mutates the scoped board cache once.
+ */
+export async function bulkUpdateKanbanTasks(
+  kanbanBoardProjectId: string | undefined,
+  targets: readonly KanbanBulkTaskTarget[],
+  mergeInput: KanbanBulkMergeInput
+): Promise<BulkUpdateKanbanTasksResult> {
+  let updated = 0;
+  let skipped = 0;
+
+  if (isKanbanBulkMergeEmpty(mergeInput)) {
+    skipped = targets.length;
+    return { updated, skipped };
+  }
+
+  mutateKanban(kanbanBoardProjectId, (currentData) => {
+    const { board } = currentData;
+
+    updated = 0;
+    skipped = 0;
+
+    const nextTasks: IKanban['tasks'] = { ...board.tasks };
+
+    targets.forEach(({ columnId, taskId }) => {
+      const tasksInColumn = nextTasks[columnId];
+      if (!tasksInColumn) {
+        skipped += 1;
+        return;
+      }
+      const idx = tasksInColumn.findIndex((t) => t.id === taskId);
+      if (idx < 0) {
+        skipped += 1;
+        return;
+      }
+      const task = tasksInColumn[idx];
+      const merged = mergeKanbanTaskBulkPatch(task, mergeInput);
+      nextTasks[columnId] = [
+        ...tasksInColumn.slice(0, idx),
+        merged,
+        ...tasksInColumn.slice(idx + 1),
+      ];
+      updated += 1;
+    });
+
+    return { ...currentData, board: { ...board, tasks: nextTasks } };
+  });
+
+  return { updated, skipped };
+}
+
+export type { KanbanBulkMergeInput } from 'src/domain/kanban/bulk-task-patch';

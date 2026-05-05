@@ -6,6 +6,7 @@ import match from 'autosuggest-highlight/match';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import Badge from '@mui/material/Badge';
 import SvgIcon from '@mui/material/SvgIcon';
 import InputBase from '@mui/material/InputBase';
 import { useTheme } from '@mui/material/styles';
@@ -22,14 +23,14 @@ import { useEventListener } from 'src/hooks/use-event-listener';
 
 import { varAlpha } from 'src/theme/styles';
 import { useGetProjects } from 'src/actions/project';
-import { useFiltersStore, selectScreenFilter } from 'src/store/filters-store';
+import { useFiltersStore } from 'src/store/filters-store';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { SearchNotFound } from 'src/components/search-not-found';
 
-import { PROJECT_LIST_FILTER_KEY } from 'src/sections/project/project-list-filter-key';
+import { PROJECT_BROWSE_FILTER_KEYS } from 'src/sections/project/project-list-filter-key';
 
 import { useCurrentRole } from 'src/auth/hooks';
 
@@ -41,6 +42,17 @@ import { groupItems, applyFilter, getAllItems } from './utils';
 export type SearchbarProps = BoxProps & {
   data?: NavSectionProps['data'];
 };
+
+function projectBrowseScreenForPath(pathname: string): string | null {
+  if (pathname === paths.dashboard.project.list) return PROJECT_BROWSE_FILTER_KEYS.default;
+  if (pathname === paths.dashboard.project.templates.root) {
+    return PROJECT_BROWSE_FILTER_KEYS.templates;
+  }
+  if (pathname === paths.dashboard.project.recurringProjects.root) {
+    return PROJECT_BROWSE_FILTER_KEYS.recurring;
+  }
+  return null;
+}
 
 function projectMatchesQuery(
   project: { name: string; code: string; ownerName: string },
@@ -65,9 +77,12 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
     scope: role === 'client' ? 'mine' : 'all',
   });
 
-  const isProjectListPage = pathname === paths.dashboard.project.list;
+  const projectBrowseScreen = projectBrowseScreenForPath(pathname);
+  const isProjectBrowsePage = projectBrowseScreen !== null;
 
-  const projectListFilter = useFiltersStore(selectScreenFilter(PROJECT_LIST_FILTER_KEY));
+  const browseFilterBag = useFiltersStore((s) =>
+    projectBrowseScreen ? (s.byScreen[projectBrowseScreen] ?? {}) : {}
+  );
   const setFilter = useFiltersStore((s) => s.setFilter);
 
   const search = useBoolean();
@@ -83,12 +98,12 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
     if (!search.value) {
       return;
     }
-    if (isProjectListPage) {
-      setSearchQuery((projectListFilter.search as string | undefined) ?? '');
+    if (isProjectBrowsePage) {
+      setSearchQuery((browseFilterBag.search as string | undefined) ?? '');
     } else {
       setSearchQuery('');
     }
-  }, [search.value, isProjectListPage, projectListFilter.search]);
+  }, [search.value, isProjectBrowsePage, browseFilterBag.search]);
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'k' && event.metaKey) {
@@ -115,11 +130,11 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       const { value } = event.target;
       setSearchQuery(value);
-      if (isProjectListPage) {
-        setFilter(PROJECT_LIST_FILTER_KEY, { search: value });
+      if (projectBrowseScreen) {
+        setFilter(projectBrowseScreen, { search: value });
       }
     },
-    [isProjectListPage, setFilter]
+    [projectBrowseScreen, setFilter]
   );
 
   const dataFiltered = applyFilter({
@@ -128,11 +143,11 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
   });
 
   const projectHits = useMemo(() => {
-    if (!isProjectListPage || !searchQuery.trim()) {
+    if (!isProjectBrowsePage || !searchQuery.trim()) {
       return [];
     }
     return projects.filter((p) => projectMatchesQuery(p, searchQuery.trim())).slice(0, 10);
-  }, [isProjectListPage, projects, searchQuery]);
+  }, [isProjectBrowsePage, projects, searchQuery]);
 
   const hasProjectResults = projectHits.length > 0;
   const notFound = Boolean(searchQuery) && !dataFiltered.length && !hasProjectResults;
@@ -209,15 +224,33 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
       }}
       {...other}
     >
-      <IconButton disableRipple>
-        {/* https://icon-sets.iconify.design/eva/search-fill/ */}
-        <SvgIcon sx={{ width: 20, height: 20 }}>
-          <path
-            fill="currentColor"
-            d="m20.71 19.29l-3.4-3.39A7.92 7.92 0 0 0 19 11a8 8 0 1 0-8 8a7.92 7.92 0 0 0 4.9-1.69l3.39 3.4a1 1 0 0 0 1.42 0a1 1 0 0 0 0-1.42M5 11a6 6 0 1 1 6 6a6 6 0 0 1-6-6"
-          />
-        </SvgIcon>
-      </IconButton>
+      <Badge
+        color="primary"
+        variant="dot"
+        invisible={
+          !isProjectBrowsePage ||
+          !(typeof browseFilterBag.search === 'string' && browseFilterBag.search.trim().length > 0)
+        }
+      >
+        <IconButton
+          disableRipple
+          aria-label={
+            isProjectBrowsePage &&
+            browseFilterBag.search &&
+            String(browseFilterBag.search).trim().length > 0
+              ? 'Search — list is filtered'
+              : 'Search'
+          }
+        >
+          {/* https://icon-sets.iconify.design/eva/search-fill/ */}
+          <SvgIcon sx={{ width: 20, height: 20 }}>
+            <path
+              fill="currentColor"
+              d="m20.71 19.29l-3.4-3.39A7.92 7.92 0 0 0 19 11a8 8 0 1 0-8 8a7.92 7.92 0 0 0 4.9-1.69l3.39 3.4a1 1 0 0 0 1.42 0a1 1 0 0 0 0-1.42M5 11a6 6 0 1 1 6 6a6 6 0 0 1-6-6"
+            />
+          </SvgIcon>
+        </IconButton>
+      </Badge>
 
       <Label
         sx={{
@@ -233,9 +266,7 @@ export function Searchbar({ data: navItems = [], sx, ...other }: SearchbarProps)
     </Box>
   );
 
-  const inputPlaceholder = isProjectListPage
-    ? 'Search projects & navigation…'
-    : 'Search…';
+  const inputPlaceholder = isProjectBrowsePage ? 'Search projects & navigation…' : 'Search…';
 
   return (
     <>

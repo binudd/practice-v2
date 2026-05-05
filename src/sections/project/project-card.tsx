@@ -4,14 +4,12 @@ import type { IProject, IProjectStatus } from 'src/types/project';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import AvatarGroup from '@mui/material/AvatarGroup';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
@@ -19,16 +17,18 @@ import { useRouter } from 'src/routes/hooks';
 
 import { fDate } from 'src/utils/format-time';
 
-import { _mock } from 'src/_mock/_mock';
 import { updateProject } from 'src/actions/project';
 import { PROJECT_STATUS_OPTIONS } from 'src/_mock/_project';
 import { ProjectPolicy } from 'src/domain/project/project-policy';
 import { deleteProjectCascade } from 'src/services/project-service';
+import { formatProjectCodeWithClient } from 'src/domain/project/project-selectors';
 
 import { Iconify } from 'src/components/iconify';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
 
 import { Can } from 'src/auth/guard';
+
+import { ProjectMembersAvatarGroup } from './project-members-avatar-group';
 
 // ----------------------------------------------------------------------
 
@@ -93,15 +93,19 @@ export function ProjectCard({ project }: Props) {
           display: 'flex',
           flexDirection: 'column',
           gap: 2.5,
-          transition: (theme) => theme.transitions.create(['box-shadow', 'transform']),
+          transition: (t) => t.transitions.create(['box-shadow', 'transform']),
           '&:hover': {
-            boxShadow: (theme) => theme.customShadows?.z20,
+            boxShadow: (t) => t.customShadows?.z20,
             transform: 'translateY(-2px)',
           },
         }}
       >
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
-          <Stack spacing={0.5} sx={{ flexGrow: 1, minWidth: 0, cursor: 'pointer' }} onClick={handleOpenDetails}>
+          <Stack
+            spacing={0.5}
+            sx={{ flexGrow: 1, minWidth: 0, cursor: 'pointer' }}
+            onClick={handleOpenDetails}
+          >
             <Stack direction="row" alignItems="center" spacing={0.75}>
               <Tooltip title={statusLabel[project.status]} arrow>
                 <Box
@@ -121,7 +125,7 @@ export function ProjectCard({ project }: Props) {
                 </Box>
               </Tooltip>
               <Typography variant="caption" color="text.secondary" noWrap>
-                {project.code}
+                {formatProjectCodeWithClient(project)}
               </Typography>
             </Stack>
             <Typography variant="subtitle1" noWrap>
@@ -231,15 +235,9 @@ export function ProjectCard({ project }: Props) {
             </Typography>
           </Stack>
 
-          <AvatarGroup max={4} sx={{ '& .MuiAvatar-root': { width: 28, height: 28 } }}>
-            {project.members.map((memberId, index) => (
-              <Avatar
-                key={memberId}
-                alt={`member-${index}`}
-                src={_mock.image.avatar(index)}
-              />
-            ))}
-          </AvatarGroup>
+          {project.members.length > 0 ? (
+            <ProjectMembersAvatarGroup projectId={project.id} members={project.members} />
+          ) : null}
         </Stack>
       </Card>
 

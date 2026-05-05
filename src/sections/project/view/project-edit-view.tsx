@@ -6,7 +6,7 @@ import { useGetProject } from 'src/actions/project';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { EmptyContent } from 'src/components/empty-content';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { ProjectCreateForm } from '../project-create-form';
 
@@ -19,16 +19,18 @@ type Props = {
 export function ProjectEditView({ id }: Props) {
   const { project, projectNotFound } = useGetProject(id);
 
+  useSetDashboardBreadcrumbs(
+    [
+      breadcrumbHomeLink,
+      { name: 'Projects', href: paths.dashboard.project.root },
+      { name: project?.name ?? 'Edit' },
+    ],
+    undefined,
+    [project?.name, project?.id, projectNotFound]
+  );
+
   return (
     <DashboardContent>
-      <CustomBreadcrumbs
-        links={[
-          { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Projects', href: paths.dashboard.project.root },
-          { name: project?.name ?? 'Edit' },
-        ]}
-        sx={{ mb: { xs: 2, md: 3 } }}
-      />
       {projectNotFound ? (
         <EmptyContent title="Project not found" />
       ) : (

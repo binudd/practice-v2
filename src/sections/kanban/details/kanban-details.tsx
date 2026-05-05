@@ -27,6 +27,7 @@ import { varAlpha } from 'src/theme/styles';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { CustomTabs } from 'src/components/custom-tabs';
+import { AssigneePickerStrip } from 'src/components/assignee-picker-strip';
 import { useDateRangePicker, CustomDateRangePicker } from 'src/components/custom-date-range-picker';
 
 import { KanbanDetailsToolbar } from './kanban-details-toolbar';
@@ -36,6 +37,7 @@ import { KanbanDetailsAttachments } from './kanban-details-attachments';
 import { KanbanDetailsCommentList } from './kanban-details-comment-list';
 import { KanbanDetailsCommentInput } from './kanban-details-comment-input';
 import { KanbanContactsDialog } from '../components/kanban-contacts-dialog';
+import { kanbanAssigneeFromContactId } from '../kanban-assignee-field-options';
 
 // ----------------------------------------------------------------------
 
@@ -115,6 +117,23 @@ export function KanbanDetails({
     setPriority(newValue);
   }, []);
 
+  const handleToggleAssignee = useCallback(
+    (id: string) => {
+      const idStr = String(id);
+      const isOn = task.assignee.some((a) => String(a.id) === idStr);
+      let next = task.assignee;
+      if (isOn) {
+        next = task.assignee.filter((a) => String(a.id) !== idStr);
+      } else {
+        const row = kanbanAssigneeFromContactId(idStr);
+        if (!row) return;
+        next = [...task.assignee, row];
+      }
+      onUpdateTask({ ...task, assignee: next });
+    },
+    [onUpdateTask, task]
+  );
+
   const handleClickSubtaskComplete = (taskId: string) => {
     const selected = subtaskCompleted.includes(taskId)
       ? subtaskCompleted.filter((value) => value !== taskId)
@@ -169,32 +188,21 @@ export function KanbanDetails({
       </Box>
 
       {/* Assignee */}
-      <Box sx={{ display: 'flex' }}>
-        <StyledLabel sx={{ height: 40, lineHeight: '40px' }}>Assignee</StyledLabel>
-
-        <Box sx={{ gap: 1, display: 'flex', flexWrap: 'wrap' }}>
-          {task.assignee.map((user) => (
-            <Avatar key={user.id} alt={user.name} src={user.avatarUrl} />
-          ))}
-
-          <Tooltip title="Add assignee">
-            <IconButton
-              onClick={contacts.onTrue}
-              sx={{
-                bgcolor: (theme) => varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
-                border: (theme) => `dashed 1px ${theme.vars.palette.divider}`,
-              }}
-            >
-              <Iconify icon="mingcute:add-line" />
-            </IconButton>
-          </Tooltip>
-
-          <KanbanContactsDialog
-            assignee={task.assignee}
-            open={contacts.value}
-            onClose={contacts.onFalse}
-          />
-        </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <AssigneePickerStrip
+          avatarUsers={task.assignee.map((u) => ({
+            id: String(u.id),
+            name: u.name,
+            avatarUrl: u.avatarUrl,
+          }))}
+          onAddClick={contacts.onTrue}
+        />
+        <KanbanContactsDialog
+          open={contacts.value}
+          onClose={contacts.onFalse}
+          selectedIds={task.assignee.map((a) => String(a.id))}
+          onToggle={handleToggleAssignee}
+        />
       </Box>
 
       {/* Label */}

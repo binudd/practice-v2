@@ -3,7 +3,6 @@ import type { IconButtonProps } from '@mui/material/IconButton';
 import { m } from 'framer-motion';
 
 import Badge from '@mui/material/Badge';
-import Avatar from '@mui/material/Avatar';
 import SvgIcon from '@mui/material/SvgIcon';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
@@ -14,6 +13,7 @@ import { fToNow } from 'src/utils/format-time';
 
 import { varHover } from 'src/components/animate';
 import { Scrollbar } from 'src/components/scrollbar';
+import { UserAvatar } from 'src/components/user-avatar';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
 
 // ----------------------------------------------------------------------
@@ -78,7 +78,7 @@ export function ContactsPopover({ data = [], sx, ...other }: ContactsPopoverProp
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                 sx={{ mr: 2 }}
               >
-                <Avatar alt={contact.name} src={contact.avatarUrl} />
+                <UserAvatar name={contact.name} src={contact.avatarUrl} />
               </Badge>
 
               <ListItemText

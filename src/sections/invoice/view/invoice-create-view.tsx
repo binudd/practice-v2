@@ -2,24 +2,25 @@ import { paths } from 'src/routes/paths';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { InvoiceNewEditForm } from '../invoice-new-edit-form';
 
 // ----------------------------------------------------------------------
 
 export function InvoiceCreateView() {
+  useSetDashboardBreadcrumbs(
+    [
+      breadcrumbHomeLink,
+      { name: 'Invoice', href: paths.dashboard.invoice.root },
+      { name: 'New invoice' },
+    ],
+    undefined,
+    []
+  );
+
   return (
     <DashboardContent>
-      <CustomBreadcrumbs
-        links={[
-          { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Invoice', href: paths.dashboard.invoice.root },
-          { name: 'New invoice' },
-        ]}
-        sx={{ mb: { xs: 3, md: 5 } }}
-      />
-
       <InvoiceNewEditForm />
     </DashboardContent>
   );

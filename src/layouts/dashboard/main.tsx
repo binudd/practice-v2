@@ -25,6 +25,7 @@ export function Main({ children, isNavHorizontal, sx, ...other }: MainProps) {
         display: 'flex',
         flex: '1 1 auto',
         flexDirection: 'column',
+        minHeight: 0,
         ...(isNavHorizontal && {
           '--layout-dashboard-content-pt': '40px',
         }),
@@ -64,6 +65,7 @@ export function DashboardContent({
         display: 'flex',
         flex: '1 1 auto',
         flexDirection: 'column',
+        minHeight: 0,
         pt: 'var(--layout-dashboard-content-pt)',
         pb: 'var(--layout-dashboard-content-pb)',
         [theme.breakpoints.up(layoutQuery)]: {

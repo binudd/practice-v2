@@ -1,9 +1,11 @@
 import type { UserRole } from 'src/auth/roles';
+import type { NavSectionProps } from 'src/components/nav-section';
 
 import { paths } from 'src/routes/paths';
 
 import { CONFIG } from 'src/config-global';
 
+import { Iconify } from 'src/components/iconify';
 import { SvgColor } from 'src/components/svg-color';
 
 // ----------------------------------------------------------------------
@@ -18,13 +20,20 @@ const ICONS = {
   kanban: icon('ic-kanban'),
   calendar: icon('ic-calendar'),
   folder: icon('ic-folder'),
-  file: icon('ic-file'),
+  /** Iconify: navbar `ic-file.svg` is a poor mask source in some themes; match project Files tab. */
+  file: <Iconify icon="solar:document-bold" width={24} />,
   user: icon('ic-user'),
   chat: icon('ic-chat'),
   mail: icon('ic-mail'),
   invoice: icon('ic-invoice'),
   label: icon('ic-label'),
   order: icon('ic-order'),
+};
+
+/** Submenu icons: same Solar bold family as account / project tabs (nav vertical/mini). */
+const SUB = {
+  list: <Iconify icon="solar:list-bold" width={22} />,
+  add: <Iconify icon="solar:add-circle-bold" width={22} />,
 };
 
 // Reusable role groups
@@ -37,7 +46,7 @@ const TIMESHEET_USERS: UserRole[] = ['admin', 'manager', 'member'];
 
 // ----------------------------------------------------------------------
 
-export const navData = [
+export const navData: NavSectionProps['data'] = [
   /**
    * Overview
    */
@@ -59,8 +68,20 @@ export const navData = [
         icon: ICONS.folder,
         menuName: 'Project',
         children: [
-          { title: 'List', path: paths.dashboard.project.list, menuName: 'Project' },
-          { title: 'New', path: paths.dashboard.project.new, menuName: 'Project' },
+          { title: 'List', path: paths.dashboard.project.list, menuName: 'Project', icon: SUB.list },
+          {
+            title: 'Templates',
+            path: paths.dashboard.project.templates.root,
+            menuName: 'Project',
+            icon: <Iconify icon="solar:copy-bold" width={22} />,
+          },
+          {
+            title: 'Recurring',
+            path: paths.dashboard.project.recurringProjects.root,
+            menuName: 'Project',
+            icon: <Iconify icon="solar:calendar-bold" width={22} />,
+          },
+          { title: 'New', path: paths.dashboard.project.new, menuName: 'Project', permissionAction: 'canAdd', icon: SUB.add },
         ],
       },
       {
@@ -106,10 +127,8 @@ export const navData = [
         icon: ICONS.user,
         menuName: 'People',
         children: [
-          { title: 'List', path: paths.dashboard.user.list, menuName: 'People' },
-          { title: 'New', path: paths.dashboard.user.new, menuName: 'People' },
-          { title: 'Profile', path: paths.dashboard.user.profile, menuName: 'People' },
-          { title: 'Account', path: paths.dashboard.user.account, menuName: 'People' },
+          { title: 'List', path: paths.dashboard.user.list, menuName: 'People', icon: SUB.list },
+          { title: 'New', path: paths.dashboard.user.new, menuName: 'People', permissionAction: 'canAdd', icon: SUB.add },
         ],
       },
     ],
@@ -126,8 +145,13 @@ export const navData = [
         icon: ICONS.invoice,
         menuName: 'Invoice',
         children: [
-          { title: 'List', path: paths.dashboard.invoice.list, menuName: 'Invoice' },
-          { title: 'New', path: paths.dashboard.invoice.new, menuName: 'Invoice' },
+          {
+            title: 'List',
+            path: paths.dashboard.invoice.list,
+            menuName: 'Invoice',
+            icon: SUB.list,
+          },
+          { title: 'New', path: paths.dashboard.invoice.new, menuName: 'Invoice', permissionAction: 'canAdd', icon: SUB.add },
         ],
       },
     ],

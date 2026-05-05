@@ -20,6 +20,7 @@ import { startOfWeek, CURRENT_USER_ID } from 'src/_mock/_timesheet';
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
+import { breadcrumbHomeLink, useSetDashboardBreadcrumbs } from 'src/components/dashboard-breadcrumbs';
 
 import { AppWelcome } from 'src/sections/overview/app/app-welcome';
 import { AppWidgetSummary } from 'src/sections/overview/app/app-widget-summary';
@@ -32,6 +33,8 @@ export function OverviewMemberView() {
   const { user } = useMockedUser();
 
   const { projects } = useGetProjects();
+
+  useSetDashboardBreadcrumbs([breadcrumbHomeLink, { name: 'Overview' }], undefined, []);
 
   const weekStart = useMemo(() => startOfWeek(new Date()), []);
 

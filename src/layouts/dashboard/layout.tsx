@@ -15,6 +15,11 @@ import { varAlpha, stylesMode } from 'src/theme/styles';
 
 import { bulletColor } from 'src/components/nav-section';
 import { useSettingsContext } from 'src/components/settings';
+import {
+  DashboardBreadcrumbsProvider,
+  DashboardToolbarBreadcrumbsHost,
+  DashboardToolbarPageActionsHost,
+} from 'src/components/dashboard-breadcrumbs';
 
 import { useCurrentRole } from 'src/auth/hooks';
 import { useUserStore } from 'src/store/user-store';
@@ -29,6 +34,7 @@ import { HeaderBase } from '../core/header-base';
 import { _workspaces } from '../config-nav-workspace';
 import { LayoutSection } from '../core/layout-section';
 import { navData as dashboardNavData } from '../config-nav-dashboard';
+import { filterDashboardNavByProjectCreate } from './filter-dashboard-nav';
 
 // ----------------------------------------------------------------------
 
@@ -64,7 +70,9 @@ export function DashboardLayout({ sx, children, data }: DashboardLayoutProps) {
           .filter((item) => {
             if (!item.menuName) return true;
             const perm = permissions.find((p: any) => p.menuName === item.menuName);
-            return perm ? perm.canView : false;
+            if (!perm) return false;
+            const action = item.permissionAction || 'canView';
+            return !!perm[action];
           })
           .map((item) => {
             if (item.children) {
@@ -73,7 +81,9 @@ export function DashboardLayout({ sx, children, data }: DashboardLayoutProps) {
                 children: item.children.filter((child: any) => {
                   if (!child.menuName) return true;
                   const perm = permissions.find((p: any) => p.menuName === child.menuName);
-                  return perm ? perm.canView : false;
+                  if (!perm) return false;
+                  const action = child.permissionAction || 'canView';
+                  return !!perm[action];
                 }),
               };
             }
@@ -94,7 +104,7 @@ export function DashboardLayout({ sx, children, data }: DashboardLayoutProps) {
   const isNavVertical = isNavMini || settings.navLayout === 'vertical';
 
   return (
-    <>
+    <DashboardBreadcrumbsProvider>
       <NavMobile
         data={navData}
         open={mobileNavOpen.value}
@@ -112,24 +122,11 @@ export function DashboardLayout({ sx, children, data }: DashboardLayoutProps) {
             layoutQuery={layoutQuery}
             disableElevation={isNavVertical}
             onOpenNav={mobileNavOpen.onTrue}
-            data={{
-              nav: navData,
-              langs: [
-                { value: 'en', label: 'English', countryCode: 'GB' },
-                { value: 'fr', label: 'French', countryCode: 'FR' },
-                { value: 'vi', label: 'Vietnamese', countryCode: 'VN' },
-                { value: 'cn', label: 'Chinese', countryCode: 'CN' },
-                { value: 'ar', label: 'Arabic', countryCode: 'SA' },
-              ],
-              account: _account,
-              contacts: _contacts,
-              workspaces: _workspaces,
-              notifications: _notifications,
-            }}
             slotsDisplay={{
               signIn: false,
               purchase: false,
               helpLink: false,
+              workspaces: false,
             }}
             slots={{
               topArea: (
@@ -145,6 +142,22 @@ export function DashboardLayout({ sx, children, data }: DashboardLayoutProps) {
                   slotProps={navSlotProps}
                 />
               ) : null,
+              leftAreaEnd: <DashboardToolbarBreadcrumbsHost />,
+              rightAreaStart: <DashboardToolbarPageActionsHost />,
+            }}
+            data={{
+              nav: navData,
+              langs: [
+                { value: 'en', label: 'English', countryCode: 'GB' },
+                { value: 'fr', label: 'French', countryCode: 'FR' },
+                { value: 'vi', label: 'Vietnamese', countryCode: 'VN' },
+                { value: 'cn', label: 'Chinese', countryCode: 'CN' },
+                { value: 'ar', label: 'Arabic', countryCode: 'SA' },
+              ],
+              account: _account,
+              contacts: _contacts,
+              workspaces: _workspaces,
+              notifications: _notifications,
             }}
             slotProps={{
               toolbar: {
@@ -240,7 +253,7 @@ export function DashboardLayout({ sx, children, data }: DashboardLayoutProps) {
       >
         <Main isNavHorizontal={isNavHorizontal}>{children}</Main>
       </LayoutSection>
-    </>
+    </DashboardBreadcrumbsProvider>
   );
 }
 

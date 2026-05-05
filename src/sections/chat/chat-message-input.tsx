@@ -1,4 +1,4 @@
-import type { IChatParticipant } from 'src/types/chat';
+import type { IChatMessage, IChatParticipant } from 'src/types/chat';
 
 import { useRef, useMemo, useState, useCallback } from 'react';
 
@@ -25,6 +25,11 @@ type Props = {
   recipients: IChatParticipant[];
   selectedConversationId: string;
   onAddRecipients: (recipients: IChatParticipant[]) => void;
+  /**
+   * When set, sends through this handler instead of dashboard chat actions
+   * (e.g. embedded project discussion thread).
+   */
+  onSendMessageOverride?: (messageData: IChatMessage) => Promise<void>;
 };
 
 export function ChatMessageInput({
@@ -32,6 +37,7 @@ export function ChatMessageInput({
   recipients,
   onAddRecipients,
   selectedConversationId,
+  onSendMessageOverride,
 }: Props) {
   const router = useRouter();
 
@@ -56,29 +62,6 @@ export function ChatMessageInput({
     [user]
   );
 
-  const messageData = useMemo(
-    () => ({
-      id: uuidv4(),
-      attachments: [],
-      body: message,
-      contentType: 'text',
-      createdAt: fSub({ minutes: 1 }),
-      senderId: myContact.id,
-    }),
-    [message, myContact.id]
-  );
-
-  const conversationData = useMemo(
-    () => ({
-      id: uuidv4(),
-      messages: [messageData],
-      participants: [...recipients, myContact],
-      type: recipients.length > 1 ? 'GROUP' : 'ONE_TO_ONE',
-      unreadCount: 0,
-    }),
-    [messageData, myContact, recipients]
-  );
-
   const handleAttach = useCallback(() => {
     if (fileRef.current) {
       fileRef.current.click();
@@ -89,28 +72,84 @@ export function ChatMessageInput({
     setMessage(event.target.value);
   }, []);
 
+  const sendPayload = useCallback(
+    async (payload: IChatMessage) => {
+      if (onSendMessageOverride) {
+        await onSendMessageOverride(payload);
+      } else if (selectedConversationId) {
+        await sendMessage(selectedConversationId, payload);
+      } else {
+        const res = await createConversation({
+          id: uuidv4(),
+          messages: [payload],
+          participants: [...recipients, myContact],
+          type: recipients.length > 1 ? 'GROUP' : 'ONE_TO_ONE',
+          unreadCount: 0,
+        });
+
+        router.push(`${paths.dashboard.chat}?id=${res.conversation.id}`);
+
+        onAddRecipients([]);
+      }
+    },
+    [
+      myContact,
+      onAddRecipients,
+      onSendMessageOverride,
+      recipients,
+      router,
+      selectedConversationId,
+    ]
+  );
+
+  const handleFileChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      try {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) {
+          return;
+        }
+
+        if (file.type.startsWith('image/')) {
+          const payload: IChatMessage = {
+            id: uuidv4(),
+            attachments: [],
+            body: URL.createObjectURL(file),
+            contentType: 'image',
+            createdAt: fSub({ minutes: 1 }),
+            senderId: myContact.id,
+          };
+          await sendPayload(payload);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [myContact.id, sendPayload]
+  );
+
   const handleSendMessage = useCallback(
     async (event: React.KeyboardEvent<HTMLInputElement>) => {
       try {
-        if (event.key === 'Enter') {
-          if (message) {
-            if (selectedConversationId) {
-              await sendMessage(selectedConversationId, messageData);
-            } else {
-              const res = await createConversation(conversationData);
+        if (event.key === 'Enter' && message) {
+          const payload: IChatMessage = {
+            id: uuidv4(),
+            attachments: [],
+            body: message,
+            contentType: 'text',
+            createdAt: fSub({ minutes: 1 }),
+            senderId: myContact.id,
+          };
 
-              router.push(`${paths.dashboard.chat}?id=${res.conversation.id}`);
-
-              onAddRecipients([]);
-            }
-          }
+          await sendPayload(payload);
           setMessage('');
         }
       } catch (error) {
         console.error(error);
       }
     },
-    [conversationData, message, messageData, onAddRecipients, router, selectedConversationId]
+    [message, myContact.id, sendPayload]
   );
 
   return (
@@ -149,7 +188,13 @@ export function ChatMessageInput({
         }}
       />
 
-      <input type="file" ref={fileRef} style={{ display: 'none' }} />
+      <input
+        type="file"
+        ref={fileRef}
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
     </>
   );
 }
