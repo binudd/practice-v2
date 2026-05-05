@@ -21,7 +21,7 @@ import {
   DashboardToolbarPageActionsHost,
 } from 'src/components/dashboard-breadcrumbs';
 
-import { useCurrentRole, useHasPermission } from 'src/auth/hooks';
+import { useCurrentRole } from 'src/auth/hooks';
 
 import { Main } from './main';
 import { NavMobile } from './nav-mobile';
@@ -33,7 +33,6 @@ import { HeaderBase } from '../core/header-base';
 import { _workspaces } from '../config-nav-workspace';
 import { LayoutSection } from '../core/layout-section';
 import { navData as dashboardNavData } from '../config-nav-dashboard';
-import { filterDashboardNavByProjectCreate } from './filter-dashboard-nav';
 
 // ----------------------------------------------------------------------
 
@@ -56,13 +55,7 @@ export function DashboardLayout({ sx, children, data }: DashboardLayoutProps) {
 
   const layoutQuery: Breakpoint = 'lg';
 
-  const canCreateProject = useHasPermission('project:create');
-
-  const navData = useMemo(
-    () =>
-      filterDashboardNavByProjectCreate(data?.nav ?? dashboardNavData, canCreateProject),
-    [data?.nav, canCreateProject]
-  );
+  const navData = useMemo(() => data?.nav ?? dashboardNavData, [data?.nav]);
 
   const currentRole = useCurrentRole();
 

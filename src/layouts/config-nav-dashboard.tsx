@@ -38,7 +38,6 @@ const SUB = {
 // Reusable role groups
 const ALL: UserRole[] = ['superadmin', 'admin', 'manager', 'member', 'client'];
 const WORKSPACE: UserRole[] = ['superadmin', 'admin', 'manager', 'member'];
-const PROJECT_EDIT: UserRole[] = ['superadmin', 'admin', 'manager'];
 const ADMIN_ONLY: UserRole[] = ['superadmin', 'admin'];
 const INVOICE_VIEWERS: UserRole[] = ['superadmin', 'admin', 'client'];
 const TIMESHEET_USERS: UserRole[] = ['admin', 'manager', 'member'];
@@ -63,25 +62,9 @@ export const navData = [
     items: [
       {
         title: 'Projects',
-        path: paths.dashboard.project.root,
+        path: paths.dashboard.project.list,
         icon: ICONS.folder,
         roles: ALL,
-        children: [
-          { title: 'List', path: paths.dashboard.project.list, roles: ALL, icon: SUB.list },
-          {
-            title: 'Templates',
-            path: paths.dashboard.project.templates.root,
-            roles: ALL,
-            icon: <Iconify icon="solar:copy-bold" width={22} />,
-          },
-          {
-            title: 'Recurring',
-            path: paths.dashboard.project.recurringProjects.root,
-            roles: ALL,
-            icon: <Iconify icon="solar:calendar-bold" width={22} />,
-          },
-          { title: 'New', path: paths.dashboard.project.new, roles: PROJECT_EDIT, icon: SUB.add },
-        ],
       },
       {
         title: 'My Work',
