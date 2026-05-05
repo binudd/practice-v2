@@ -1,19 +1,12 @@
 import type { IKanbanTask } from 'src/types/kanban';
-import type { UniqueIdentifier } from '@dnd-kit/core';
 import type { Theme, SxProps } from '@mui/material/styles';
 
+import { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
-import { useState, useEffect, useCallback } from 'react';
 
-import { useBoolean } from 'src/hooks/use-boolean';
-
-import { deleteTask, updateTask } from 'src/actions/kanban';
-
-import { toast } from 'src/components/snackbar';
 import { imageClasses } from 'src/components/image';
 
 import ItemBase from './item-base';
-import { KanbanDetails } from '../details/kanban-details';
 
 // ----------------------------------------------------------------------
 
@@ -21,13 +14,18 @@ type TaskItemProps = {
   disabled?: boolean;
   sx?: SxProps<Theme>;
   task: IKanbanTask;
-  columnId: UniqueIdentifier;
-  boardProjectId?: string;
+  /** Parent-owned drawer highlights the active card while open */
+  highlightOpen?: boolean;
+  onOpen?: () => void;
 };
 
-export function KanbanTaskItem({ task, disabled, columnId, boardProjectId, sx }: TaskItemProps) {
-  const openDetails = useBoolean();
-
+export function KanbanTaskItem({
+  task,
+  disabled,
+  sx,
+  highlightOpen = false,
+  onOpen,
+}: TaskItemProps) {
   const { setNodeRef, listeners, isDragging, isSorting, transform, transition } = useSortable({
     id: task?.id,
   });
@@ -36,51 +34,21 @@ export function KanbanTaskItem({ task, disabled, columnId, boardProjectId, sx }:
 
   const mountedWhileDragging = isDragging && !mounted;
 
-  const handleDeleteTask = useCallback(async () => {
-    try {
-      deleteTask(columnId, task.id, boardProjectId);
-      toast.success('Delete success!', { position: 'top-center' });
-    } catch (error) {
-      console.error(error);
-    }
-  }, [boardProjectId, columnId, task.id]);
-
-  const handleUpdateTask = useCallback(
-    async (taskData: IKanbanTask) => {
-      try {
-        updateTask(columnId, taskData, boardProjectId);
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    [boardProjectId, columnId]
-  );
-
   return (
-    <>
-      <ItemBase
-        ref={disabled ? undefined : setNodeRef}
-        task={task}
-        onClick={openDetails.onTrue}
-        stateProps={{
-          transform,
-          listeners,
-          transition,
-          sorting: isSorting,
-          dragging: isDragging,
-          fadeIn: mountedWhileDragging,
-        }}
-        sx={{ ...(openDetails.value && { [`& .${imageClasses.root}`]: { opacity: 0.8 } }), ...sx }}
-      />
-
-      <KanbanDetails
-        task={task}
-        openDetails={openDetails.value}
-        onCloseDetails={openDetails.onFalse}
-        onUpdateTask={handleUpdateTask}
-        onDeleteTask={handleDeleteTask}
-      />
-    </>
+    <ItemBase
+      ref={disabled ? undefined : setNodeRef}
+      task={task}
+      onClick={onOpen}
+      stateProps={{
+        transform,
+        listeners,
+        transition,
+        sorting: isSorting,
+        dragging: isDragging,
+        fadeIn: mountedWhileDragging,
+      }}
+      sx={{ ...(highlightOpen && { [`& .${imageClasses.root}`]: { opacity: 0.8 } }), ...sx }}
+    />
   );
 }
 

@@ -103,7 +103,7 @@ export function DiscussionTopicCreateDialog({ projectId, open, onClose }: Props)
         <DialogTitle>New discussion topic</DialogTitle>
 
         <DialogContent dividers>
-          <Stack spacing={2.5} sx={{ pt: 0.5 }}>
+          <Stack spacing={2.5}>
             <Field.Text name="name" label="Name" />
 
             <Field.Text name="description" label="Description" multiline rows={3} />

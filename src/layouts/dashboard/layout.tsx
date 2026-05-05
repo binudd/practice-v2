@@ -34,7 +34,6 @@ import { HeaderBase } from '../core/header-base';
 import { _workspaces } from '../config-nav-workspace';
 import { LayoutSection } from '../core/layout-section';
 import { navData as dashboardNavData } from '../config-nav-dashboard';
-import { filterDashboardNavByProjectCreate } from './filter-dashboard-nav';
 
 // ----------------------------------------------------------------------
 

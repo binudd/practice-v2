@@ -25,6 +25,15 @@ export type IKanbanAssignee = {
   lastActivity: IDateValue;
 };
 
+export type IKanbanSubtask = {
+  id: string;
+  name: string;
+  description: string;
+  hoursEstimated: number;
+  assignee: IKanbanAssignee[];
+  completed: boolean;
+};
+
 export type IKanbanTask = {
   id: UniqueIdentifier;
   name: string;
@@ -35,6 +44,8 @@ export type IKanbanTask = {
   attachments: string[];
   comments: IKanbanComment[];
   assignee: IKanbanAssignee[];
+  /** When omitted (e.g. older API payloads), treat as `[]` in UI. */
+  subtasks?: IKanbanSubtask[];
   due: [IDateValue, IDateValue];
   reporter: {
     id: string;

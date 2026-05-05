@@ -24,11 +24,20 @@ type ColumnProps = {
   tasks: IKanbanTask[];
   column: IKanbanColumn;
   children: React.ReactNode;
+  taskReporter: IKanbanTask['reporter'];
   /** Scope for SWR-backed board mutations */
   boardProjectId?: string;
 };
 
-export function KanbanColumn({ children, column, tasks, disabled, boardProjectId, sx }: ColumnProps) {
+export function KanbanColumn({
+  children,
+  column,
+  tasks,
+  disabled,
+  boardProjectId,
+  taskReporter,
+  sx,
+}: ColumnProps) {
   const openAddTask = useBoolean();
 
   const { attributes, isDragging, listeners, setNodeRef, transition, active, over, transform } =
@@ -116,6 +125,7 @@ export function KanbanColumn({ children, column, tasks, disabled, boardProjectId
         action: (
           <KanbanTaskAdd
             status={column.name}
+            reporter={taskReporter}
             openAddTask={openAddTask.value}
             onAddTask={handleAddTask}
             onCloseAddTask={openAddTask.onFalse}

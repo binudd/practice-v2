@@ -68,10 +68,11 @@ import {
 
 // ----------------------------------------------------------------------
 
-/** Main project browse: active | completed | overview. Templates/recurring are separate hubs. */
+/** Main project browse: active | completed | templates | overview. Recurring stays on its hub route. */
 const DEFAULT_MODULE_TABS = [
   { value: 'active', label: 'Active' },
   { value: 'completed', label: 'Completed' },
+  { value: 'templates', label: 'Templates' },
   { value: 'overview', label: 'Overview' },
 ] as const;
 
@@ -222,15 +223,6 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
       ? (rawModuleTabRaw as string | undefined)
       : undefined;
 
-  /** Legacy: templates/recurring used to live on the default list tabs; migrate to hubs. */
-  useEffect(() => {
-    if (browseMode.kind !== 'default') return;
-    const m = rawModuleTab as string | undefined;
-    if (m === 'templates' || m === 'recurring') {
-      setFilter(PROJECT_LIST_FILTER_KEY, { moduleTab: 'active' });
-    }
-  }, [browseMode.kind, rawModuleTab, setFilter]);
-
   const defaultModuleTab: DefaultModuleTabValue =
     browseMode.kind === 'default'
       ? rawModuleTab && DEFAULT_TAB_SET.has(rawModuleTab)
@@ -330,6 +322,7 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
     return {
       active: scoped.filter((p) => matchesModuleTab(p, 'active')).length,
       completed: scoped.filter((p) => matchesModuleTab(p, 'completed')).length,
+      templates: scoped.filter((p) => matchesModuleTab(p, 'templates')).length,
       overview: scoped.length,
     };
   }, [projects, search]);
@@ -435,12 +428,15 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
         { name: 'Recurring projects' },
       ] as const;
     }
+    const tabCrumb =
+      DEFAULT_MODULE_TABS.find((t) => t.value === defaultModuleTab)?.label ?? 'List';
+
     return [
       breadcrumbHomeLink,
       { name: 'Projects', href: paths.dashboard.project.root },
-      { name: 'List' },
+      { name: tabCrumb },
     ] as const;
-  }, [moduleHub]);
+  }, [moduleHub, defaultModuleTab]);
 
   const primaryToolbarAction =
     moduleHub === 'templates' || moduleHub === 'recurring' ? (
@@ -457,6 +453,16 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
           {moduleHub === 'templates' ? 'New template' : 'New recurring project'}
         </DashboardToolbarPrimaryButton>
       </Can>
+    ) : defaultModuleTab === 'templates' ? (
+      <Can perm="project:create">
+        <DashboardToolbarPrimaryButton
+          component={RouterLink}
+          href={paths.dashboard.project.newWithPreset('template')}
+          startIcon={<Iconify icon="mingcute:add-line" />}
+        >
+          New template
+        </DashboardToolbarPrimaryButton>
+      </Can>
     ) : (
       <Can perm="project:create">
         <DashboardToolbarPrimaryButton
@@ -469,7 +475,10 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
       </Can>
     );
 
-  useSetDashboardBreadcrumbs([...breadcrumbsForToolbar], primaryToolbarAction, [moduleHub]);
+  useSetDashboardBreadcrumbs([...breadcrumbsForToolbar], primaryToolbarAction, [
+    moduleHub,
+    defaultModuleTab,
+  ]);
 
   const columns: GridColDef<IProject>[] = [
     {
