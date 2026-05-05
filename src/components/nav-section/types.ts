@@ -41,6 +41,8 @@ export type NavItemBaseProps = {
   children?: any;
   caption?: string;
   roles?: string[];
+  menuName?: string;
+  permissionAction?: string;
   disabled?: boolean;
   render?: NavItemRenderProps;
   slotProps?: NavItemSlotProps;

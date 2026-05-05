@@ -6,6 +6,7 @@ import axios, { endpoints } from 'src/utils/axios';
 
 import { CONFIG } from 'src/config-global';
 import { useDevStore } from 'src/store/dev-store';
+import { useUserStore } from 'src/store';
 
 import { isUserRole } from 'src/auth/roles';
 
@@ -43,11 +44,16 @@ export function AuthProvider({ children }: Props) {
       if (accessToken && isValidToken(accessToken)) {
         setSession(accessToken);
 
-        const res = await axios.get(endpoints.auth.me);
+        const storedUser = useUserStore.getState().user;
 
-        const { user } = res.data;
-
-        setState({ user: { ...user, accessToken }, loading: false });
+        if (storedUser) {
+          setState({ user: { ...storedUser, accessToken }, loading: false });
+        } else {
+          // If for some reason we have a token but no user data in store, 
+          // we could either call /me or just logout.
+          // Since we want to avoid /me if it doesn't exist:
+          setState({ user: null, loading: false });
+        }
       } else {
         setState({ user: null, loading: false });
       }

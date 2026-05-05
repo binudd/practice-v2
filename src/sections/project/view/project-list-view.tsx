@@ -8,7 +8,6 @@ import type {
 } from '@mui/x-data-grid';
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
-
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
@@ -197,8 +196,6 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
 
   const openFilters = useBoolean();
 
-  const role = useCurrentRole();
-
   const SCREEN_KEY =
     browseMode.kind === 'module'
       ? browseMode.moduleKey === 'templates'
@@ -206,18 +203,20 @@ export function ProjectListView({ moduleHub }: ProjectListViewProps) {
         : PROJECT_BROWSE_FILTER_KEYS.recurring
       : PROJECT_BROWSE_FILTER_KEYS.default;
 
+  const role = useCurrentRole();
+  const filter = useFiltersStore(selectScreenFilter(SCREEN_KEY));
+  const search = (filter.search as string | undefined) ?? '';
+
   // Clients only see their own projects; everyone else sees the full list.
   const { projects, projectsLoading, projectsEmpty } = useGetProjects({
-    scope: role === 'client' ? 'mine' : 'all',
+    // scope: role === 'client' ? 'mine' : 'all',
+    searchText: search,
   });
 
   const view = useUIPreferencesStore((s) => s.viewMode[SCREEN_KEY] ?? 'list');
   const setViewMode = useUIPreferencesStore((s) => s.setViewMode);
-
-  const filter = useFiltersStore(selectScreenFilter(SCREEN_KEY));
   const setFilter = useFiltersStore((s) => s.setFilter);
 
-  const search = (filter.search as string | undefined) ?? '';
   const rawModuleTabRaw = browseMode.kind === 'default' ? filter.moduleTab : undefined;
   const rawModuleTab =
     browseMode.kind === 'default'

@@ -22,6 +22,7 @@ import {
 } from 'src/components/dashboard-breadcrumbs';
 
 import { useCurrentRole } from 'src/auth/hooks';
+import { useUserStore } from 'src/store/user-store';
 
 import { Main } from './main';
 import { NavMobile } from './nav-mobile';
@@ -55,7 +56,41 @@ export function DashboardLayout({ sx, children, data }: DashboardLayoutProps) {
 
   const layoutQuery: Breakpoint = 'lg';
 
-  const navData = useMemo(() => data?.nav ?? dashboardNavData, [data?.nav]);
+  const user = useUserStore((s: any) => s.user);
+  const permissions = user?.roles || [];
+
+  const navData = useMemo(() => {
+    const rawData = data?.nav ?? dashboardNavData;
+
+    return rawData
+      .map((group) => ({
+        ...group,
+        items: group.items
+          .filter((item) => {
+            if (!item.menuName) return true;
+            const perm = permissions.find((p: any) => p.menuName === item.menuName);
+            if (!perm) return false;
+            const action = item.permissionAction || 'canView';
+            return !!perm[action];
+          })
+          .map((item) => {
+            if (item.children) {
+              return {
+                ...item,
+                children: item.children.filter((child: any) => {
+                  if (!child.menuName) return true;
+                  const perm = permissions.find((p: any) => p.menuName === child.menuName);
+                  if (!perm) return false;
+                  const action = child.permissionAction || 'canView';
+                  return !!perm[action];
+                }),
+              };
+            }
+            return item;
+          }),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [user, data?.nav, permissions]);
 
   const currentRole = useCurrentRole();
 

@@ -22,6 +22,8 @@ export const ProjectSchema = z.object({
   name: z.string(),
   code: z.string(),
   status: ProjectStatusSchema,
+  statusId: z.string().optional(),
+  priorityId: z.string().optional(),
   startDate: z.string(),
   endDate: z.string().optional(),
   ownerId: z.string(),

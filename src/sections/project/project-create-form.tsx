@@ -29,10 +29,11 @@ import { fIsAfter } from 'src/utils/format-time';
 
 import { varAlpha } from 'src/theme/styles';
 import { _userList } from 'src/_mock/_user';
+import axios, { endpoints } from 'src/utils/axios';
 import { updateProject } from 'src/actions/project';
 import { notify } from 'src/store/notifications-store';
-import { PROJECT_STATUS_OPTIONS } from 'src/_mock/_project';
 import { createProjectWithBoard } from 'src/services/project-service';
+import { mapProjectFromApi } from 'src/domain/project/project-mapper';
 
 import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
@@ -57,37 +58,23 @@ import {
 
 // ----------------------------------------------------------------------
 
-const TEMPLATE_OPTIONS = [
-  { value: '', label: 'None' },
-  { value: 'standard', label: 'Standard template' },
-  { value: 'internal', label: 'Internal delivery' },
-];
+import {
+  getUsersApi,
+  getJobTypesApi,
+  getTemplateDetailsApi,
+  getTemplatesApi,
+  getDepartmentsApi,
+  getCurrenciesApi,
+  getCompaniesApi,
+  getPortfoliosApi,
+  getCustomFieldsApi,
+  getCategoriesApi,
+  getGroupsApi,
+  getProjectSettingsApi,
+  getProjectStatusesApi,
+} from 'src/infra/api/lookup-api';
 
-const CATEGORY_OPTIONS = [
-  { value: 'software', label: 'Software' },
-  { value: 'operations', label: 'Operations' },
-  { value: 'consulting', label: 'Consulting' },
-  { value: 'marketing', label: 'Marketing' },
-];
-
-const GROUP_OPTIONS = [
-  { value: '', label: 'None' },
-  { value: 'alpha', label: 'Alpha squad' },
-  { value: 'platform', label: 'Platform' },
-];
-
-const CLIENT_COMPANY_OPTIONS = Array.from(new Set(_userList.map((u) => u.company))).map(
-  (name) => ({
-    value: name,
-    label: name,
-  })
-);
-
-const CUSTOM_FIELD_OPTIONS = [
-  { value: '', label: 'None' },
-  { value: 'billing-code', label: 'Billing code' },
-  { value: 'cost-center', label: 'Cost center' },
-];
+// ----------------------------------------------------------------------
 
 const DEFAULT_SETTINGS = {
   hiddenFromClient: false,
@@ -116,8 +103,8 @@ const ProjectCreateFormSchema = zod
     description: zod.string(),
     projectLeaderId: zod.string().min(1, 'Project leader is required'),
     ownerId: zod.string().min(1, 'Project owner is required'),
-    status: zod.enum(['active', 'on-hold', 'completed', 'archived']),
-    priority: zod.enum(['low', 'medium', 'high', 'critical']),
+    status: zod.string().min(1, 'Status is required'),
+    priority: zod.string().min(1, 'Priority is required'),
     category: zod.string().min(1, 'Category is required'),
     group: zod.string(),
     department: zod.string(),
@@ -126,7 +113,7 @@ const ProjectCreateFormSchema = zod
     endDate: zod.string().min(1, 'End date is required'),
     budgetHours: zod.string(),
     customFieldKey: zod.string(),
-    budgetType: zod.enum(['fixed', 'time_expenses', 'non_billable']),
+    budgetType: zod.string(),
     settings: settingsSchema,
     attachments: zod.any(),
     memberIds: zod.array(zod.string()),
@@ -162,35 +149,17 @@ export function projectToFormValues(
     ? project.priority
     : 'medium';
 
-  const category =
-    project.category && CATEGORY_OPTIONS.some((c) => c.value === project.category)
-      ? project.category
-      : 'software';
-
-  const group =
-    project.group && GROUP_OPTIONS.some((g) => g.value === project.group) ? project.group : '';
-
-  const department =
-    project.department && DEPARTMENT_OPTIONS.some((d) => d.value === project.department)
-      ? project.department
-      : 'dt-dev';
-
-  const clientCompanyName =
-    project.clientCompanyName &&
-    CLIENT_COMPANY_OPTIONS.some((c) => c.value === project.clientCompanyName)
-      ? project.clientCompanyName
-      : (CLIENT_COMPANY_OPTIONS[0]?.value ?? '');
+  const category = project.category || '';
+  const group = project.group || '';
+  const department = project.department || '';
+  const clientCompanyName = project.clientCompanyName || '';
 
   const budgetType =
     project.budgetType && ['fixed', 'time_expenses', 'non_billable'].includes(project.budgetType)
       ? project.budgetType
       : 'non_billable';
 
-  const customFieldKey =
-    project.customFieldKey &&
-    CUSTOM_FIELD_OPTIONS.some((c) => c.value === project.customFieldKey)
-      ? project.customFieldKey
-      : '';
+  const customFieldKey = project.customFieldKey || '';
 
   return {
     templateId: project.templateId ?? '',
@@ -200,8 +169,8 @@ export function projectToFormValues(
     description: project.description ?? '',
     projectLeaderId: leaderId,
     ownerId: ownerFallback,
-    status: project.status,
-    priority,
+    status: project.statusId || project.status,
+    priority: project.priorityId || project.priority,
     category,
     group,
     department,
@@ -224,14 +193,14 @@ function emptyFormValues(defaultUserId: string): ProjectCreateFormValues {
     code: '',
     referenceNo: '',
     description: '',
-    projectLeaderId: defaultUserId,
-    ownerId: defaultUserId,
+    projectLeaderId: '',
+    ownerId: '',
     status: 'active',
     priority: 'medium',
-    category: 'software',
+    category: '',
     group: '',
-    department: 'dt-dev',
-    clientCompanyName: CLIENT_COMPANY_OPTIONS[0]?.value ?? '',
+    department: '',
+    clientCompanyName: '',
     startDate: dayjs().format(),
     endDate: dayjs().format(),
     budgetHours: '',
@@ -258,11 +227,117 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
 
   const defaultUserId = user?.id ?? PROJECT_USER_SELECT_OPTIONS[0]?.value ?? '';
 
+  const [users, setUsers] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [portfolios, setPortfolios] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [statuses, setStatuses] = useState<any[]>([]);
+  const [customFields, setCustomFields] = useState<any[]>([]);
+  const [currencies, setCurrencies] = useState<any[]>([]);
+  const [jobTypes, setJobTypes] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [lookupsLoading, setLookupsLoading] = useState(true);
+
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchLookups() {
+      setLookupsLoading(true);
+      try {
+        const [
+          usersRes,
+          templatesRes,
+          categoriesRes,
+          portfoliosRes,
+          departmentsRes,
+          companiesRes,
+          statusesRes,
+          customFieldsRes,
+          currenciesRes,
+          jobTypesRes,
+          settingsRes,
+          groupsRes,
+        ] = await Promise.allSettled([
+          getUsersApi(),
+          getTemplatesApi(),
+          getCategoriesApi(),
+          getPortfoliosApi(),
+          getDepartmentsApi(),
+          getCompaniesApi(),
+          getProjectStatusesApi(),
+          getCustomFieldsApi(),
+          getCurrenciesApi(),
+          getJobTypesApi(),
+          getProjectSettingsApi(),
+          getGroupsApi(),
+        ]);
+
+        if (usersRes.status === 'fulfilled') setUsers(usersRes.value);
+        if (templatesRes.status === 'fulfilled') setTemplates(templatesRes.value);
+        if (categoriesRes.status === 'fulfilled') setCategories(categoriesRes.value);
+        if (portfoliosRes.status === 'fulfilled') setPortfolios(portfoliosRes.value);
+        if (departmentsRes.status === 'fulfilled') setDepartments(departmentsRes.value);
+        if (companiesRes.status === 'fulfilled') setCompanies(companiesRes.value);
+        if (statusesRes.status === 'fulfilled') {
+          // Status API might return { data: [...] } or just [...]
+          const statusData = Array.isArray(statusesRes.value)
+            ? statusesRes.value
+            : (statusesRes.value?.data || statusesRes.value?.items || []);
+          setStatuses(statusData);
+        }
+        if (customFieldsRes.status === 'fulfilled') setCustomFields(customFieldsRes.value);
+        if (currenciesRes.status === 'fulfilled') setCurrencies(currenciesRes.value);
+        if (jobTypesRes.status === 'fulfilled') setJobTypes(jobTypesRes.value);
+        if (settingsRes.status === 'fulfilled') setSettings(settingsRes.value);
+        if (groupsRes.status === 'fulfilled') setGroups(groupsRes.value);
+      } catch (error) {
+        console.error('Failed to fetch project lookups', error);
+      } finally {
+        setLookupsLoading(false);
+      }
+    }
+    fetchLookups();
+  }, []);
+
+  const methods = useForm<ProjectCreateFormValues>({
+    resolver: zodResolver(ProjectCreateFormSchema),
+    defaultValues: emptyFormValues(defaultUserId),
+  });
+
+  const {
+    reset,
+    handleSubmit,
+    control,
+    setValue,
+    getValues,
+    formState: { isSubmitting },
+  } = methods;
+
+  // Initialize form when data or lookups are ready
+  useEffect(() => {
+    if (lookupsLoading) return;
+
+    if (mode === 'edit' && current) {
+      reset(projectToFormValues(current, defaultUserId));
+    } else {
+      const defaults = emptyFormValues(defaultUserId);
+      if (settings) {
+        defaults.status = String(settings.defaultProjectStatus);
+        defaults.priority = String(settings.defaultTaskPriority);
+        defaults.budgetType = settings.bugetType === 1 ? 'fixed' : 'time_expenses';
+      }
+
+      reset(defaults);
+    }
+  }, [lookupsLoading, mode, current, defaultUserId, reset, settings, users]);
+
   const browseAfterSaveHref =
     mode === 'edit' ? paths.dashboard.project.list
-    : creationPreset === 'template' ? paths.dashboard.project.templates.root
-    : creationPreset === 'recurring' ? paths.dashboard.project.recurringProjects.root
-    : paths.dashboard.project.list;
+      : creationPreset === 'template' ? paths.dashboard.project.templates.root
+        : creationPreset === 'recurring' ? paths.dashboard.project.recurringProjects.root
+          : paths.dashboard.project.list;
 
   const [postCreateContext, setPostCreateContext] = useState<{ id: string } | null>(null);
   const [postMemberIds, setPostMemberIds] = useState<string[]>([]);
@@ -287,7 +362,7 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
     try {
       await updateProject(postCreateContext.id, { members: postMemberIds });
       notify({ kind: 'success', title: 'Team updated' });
-      const {id} = postCreateContext;
+      const { id } = postCreateContext;
       setPostCreateContext(null);
       router.push(paths.dashboard.project.details(id));
     } catch (error) {
@@ -297,22 +372,6 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
       setPostTeamSaving(false);
     }
   }, [postCreateContext, postMemberIds, router]);
-  const methods = useForm<ProjectCreateFormValues>({
-    resolver: zodResolver(ProjectCreateFormSchema),
-    defaultValues:
-      mode === 'edit' && current
-        ? projectToFormValues(current, defaultUserId)
-        : emptyFormValues(defaultUserId),
-  });
-
-  const {
-    reset,
-    handleSubmit,
-    control,
-    setValue,
-    getValues,
-    formState: { isSubmitting },
-  } = methods;
 
   const watchedMemberIds = useWatch({
     control,
@@ -329,85 +388,57 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
     [getValues, setValue]
   );
 
-  useEffect(() => {
-    if (mode === 'edit' && current) {
-      reset(projectToFormValues(current, defaultUserId));
-    }
-  }, [mode, current, defaultUserId, reset]);
-
   const onSubmit = handleSubmit(async (data) => {
     const budgetParsed = Number.parseFloat(data.budgetHours.trim());
     const budgetHours = Number.isFinite(budgetParsed) ? budgetParsed : undefined;
 
-    const generatedCode = `PRJ-${data.name
-      .replace(/\s+/g, '-')
-      .replace(/[^a-zA-Z0-9-]/g, '')
-      .slice(0, 6)
-      .toUpperCase()}-${uuidv4().slice(0, 4)}`;
-
-    const code =
-      data.code.trim() ||
-      (mode === 'edit' && current ? current.code : '') ||
-      generatedCode;
-
-    const sharedFields = {
-      name: data.name.trim(),
-      code,
-      status: data.status,
+    const payload: any = {
+      projectID: mode === 'edit' && current ? Number(current.id) : 0,
+      projectName: data.name.trim(),
+      projectCode: data.code.trim(),
+      projectDescription: data.description.trim(),
       startDate: data.startDate,
-      endDate: data.endDate,
-      ownerId: data.ownerId,
-      ownerName: projectUserNameById(data.ownerId),
-      description: data.description.trim() || undefined,
-      priority: data.priority,
-      isTemplate: Boolean(creationPreset === 'template' || data.templateId),
-      referenceNo: data.referenceNo.trim() || undefined,
-      templateId: data.templateId || undefined,
-      projectLeaderId: data.projectLeaderId,
-      projectLeaderName: projectUserNameById(data.projectLeaderId),
-      category: data.category,
-      group: data.group || undefined,
-      department: data.department || undefined,
-      clientCompanyName: data.clientCompanyName,
+      finishDate: data.endDate,
+      projectOwner: Number(data.ownerId),
+      projectLeader: Number(data.projectLeaderId),
+      currentStatus: Number(data.status),
+      projectTemplateID: data.templateId ? Number(data.templateId) : 0,
+      projectPortFolioID: data.group ? Number(data.group) : 0,
+      deptID: data.department ? Number(data.department) : 0,
+      clientID: data.clientCompanyName ? Number(data.clientCompanyName) : 0,
       budgetHours,
-      budgetType: data.budgetType,
-      customFieldKey: data.customFieldKey || undefined,
-      settings: data.settings,
-    };
-
-    if (mode === 'edit' && current) {
-      try {
-        await updateProject(current.id, { ...sharedFields, members: data.memberIds });
-        notify({ kind: 'success', title: 'Project updated' });
-        router.push(paths.dashboard.project.list);
-      } catch (error) {
-        console.error(error);
-        notify({ kind: 'error', title: 'Update failed' });
-      }
-      return;
-    }
-
-    const project: IProject = {
-      id: uuidv4(),
-      ...sharedFields,
-      members: [],
-      progress: 0,
-      totalTasks: 0,
-      completedTasks: 0,
-      isFavorite: false,
-      isRecurring: Boolean(creationPreset === 'recurring'),
-      createdAt: dayjs().toISOString(),
+      budgetType: data.budgetType === 'fixed' ? 1 : 2,
+      referenceNo: data.referenceNo.trim(),
+      priorityID:
+        data.priority === 'low' ? 3
+          : data.priority === 'medium' ? 2
+            : data.priority === 'high' ? 1
+              : 4, // critical
+      categoryID: Number(data.category),
+      customFieldID: data.customFieldKey ? Number(data.customFieldKey) : 0,
+      hideClient: data.settings.hiddenFromClient,
+      restrictTaskViewToMembers: data.settings.restrictTaskView,
+      enableEmailNotification: data.settings.emailNotification,
+      restrictTimeSheetHours: data.settings.restrictTimesheetHours,
+      enableNotification: data.settings.notification,
+      enableApproval: data.settings.enableTimesheetApproval,
     };
 
     try {
-      const result = await createProjectWithBoard(project);
-      if (result.ok) {
-        setPostMemberIds([]);
-        setPostCreateContext({ id: project.id });
+      // Use the raw API for saving as we have the exact payload structure now
+      const res = await axios.post(endpoints.project.save, payload);
+      const savedProject = mapProjectFromApi(res.data);
+
+      notify({ kind: 'success', title: `Project ${mode === 'edit' ? 'updated' : 'created'}` });
+
+      if (mode === 'create') {
+        setPostCreateContext({ id: savedProject.id });
+      } else {
+        router.push(paths.dashboard.project.list);
       }
     } catch (error) {
       console.error(error);
-      notify({ kind: 'error', title: 'Could not create project' });
+      notify({ kind: 'error', title: 'Operation failed' });
     }
   });
 
@@ -506,9 +537,10 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
             <Grid container spacing={2.5}>
               <Grid xs={12} md={6}>
                 <Field.Select name="templateId" label="Template">
-                  {TEMPLATE_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.label} value={opt.value}>
-                      {opt.label}
+                  <MenuItem value="">None</MenuItem>
+                  {templates.map((opt) => (
+                    <MenuItem key={opt.templateID} value={String(opt.templateID)}>
+                      {opt.templateName}
                     </MenuItem>
                   ))}
                 </Field.Select>
@@ -527,18 +559,18 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
               </Grid>
               <Grid xs={12} md={6}>
                 <Field.Select name="projectLeaderId" label="Project leader *">
-                  {PROJECT_USER_SELECT_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {users.map((opt) => (
+                    <MenuItem key={opt.id} value={String(opt.id)}>
+                      {opt.fullName}
                     </MenuItem>
                   ))}
                 </Field.Select>
               </Grid>
               <Grid xs={12} md={6}>
                 <Field.Select name="ownerId" label="Project owner *">
-                  {PROJECT_USER_SELECT_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {users.map((opt) => (
+                    <MenuItem key={opt.id} value={String(opt.id)}>
+                      {opt.fullName}
                     </MenuItem>
                   ))}
                 </Field.Select>
@@ -574,9 +606,9 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
             <Grid container spacing={2.5}>
               <Grid xs={12} md={6}>
                 <Field.Select name="status" label="Kanban status *">
-                  {PROJECT_STATUS_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {statuses.map((opt) => (
+                    <MenuItem key={opt.statusID} value={String(opt.statusID)}>
+                      {opt.statusDescription}
                     </MenuItem>
                   ))}
                 </Field.Select>
@@ -625,27 +657,28 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
               </Grid>
               <Grid xs={12} md={6}>
                 <Field.Select name="category" label="Category *">
-                  {CATEGORY_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {categories.map((opt) => (
+                    <MenuItem key={opt.projectPortFolioID} value={String(opt.projectPortFolioID)}>
+                      {opt.projectPortFolioDescription}
                     </MenuItem>
                   ))}
                 </Field.Select>
               </Grid>
               <Grid xs={12} md={6}>
-                <Field.Select name="group" label="Group">
-                  {GROUP_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.label} value={opt.value}>
-                      {opt.label}
+                <Field.Select name="group" label="Portfolio / Group">
+                  <MenuItem value="">None</MenuItem>
+                  {groups.map((opt) => (
+                    <MenuItem key={opt.categoryID} value={String(opt.categoryID)}>
+                      {opt.categoryName}
                     </MenuItem>
                   ))}
                 </Field.Select>
               </Grid>
               <Grid xs={12} md={6}>
                 <Field.Select name="department" label="Department">
-                  {DEPARTMENT_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {departments.map((opt) => (
+                    <MenuItem key={opt.deptID} value={String(opt.deptID)}>
+                      {opt.deptName}
                     </MenuItem>
                   ))}
                 </Field.Select>
@@ -654,9 +687,9 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
                 <Stack direction="row" spacing={1} alignItems="flex-start">
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Field.Select name="clientCompanyName" label="Client company *">
-                      {CLIENT_COMPANY_OPTIONS.map((opt) => (
-                        <MenuItem key={opt.value} value={opt.value}>
-                          {opt.label}
+                      {companies.map((opt) => (
+                        <MenuItem key={opt.companyID} value={String(opt.companyID)}>
+                          {opt.companyName}
                         </MenuItem>
                       ))}
                     </Field.Select>
@@ -692,9 +725,10 @@ export function ProjectCreateForm({ mode = 'create', current, creationPreset }: 
               </Grid>
               <Grid xs={12} md={6}>
                 <Field.Select name="customFieldKey" label="Custom fields">
-                  {CUSTOM_FIELD_OPTIONS.map((opt) => (
-                    <MenuItem key={opt.label} value={opt.value}>
-                      {opt.label}
+                  <MenuItem value="">None</MenuItem>
+                  {customFields.map((opt) => (
+                    <MenuItem key={opt.id} value={String(opt.id)}>
+                      {opt.description}
                     </MenuItem>
                   ))}
                 </Field.Select>
