@@ -7,16 +7,15 @@ import { memo, useEffect, forwardRef } from 'react';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
 import ListItem from '@mui/material/ListItem';
 import Typography from '@mui/material/Typography';
 import { styled, useTheme } from '@mui/material/styles';
-import AvatarGroup, { avatarGroupClasses } from '@mui/material/AvatarGroup';
 
 import { stylesMode } from 'src/theme/styles';
 
 import { Iconify } from 'src/components/iconify';
 import { imageClasses } from 'src/components/image';
+import { AssigneeLetterAvatars } from 'src/components/assignee-letter-avatars';
 
 import { kanbanClasses } from '../classes';
 
@@ -162,11 +161,13 @@ const ItemBase = forwardRef<HTMLLIElement, ItemBaseProps>(
           <Box component="span">{task?.attachments?.length}</Box>
         </Stack>
 
-        <AvatarGroup sx={{ [`& .${avatarGroupClasses.avatar}`]: { width: 24, height: 24 } }}>
-          {task?.assignee?.map((user) => (
-            <Avatar key={user.id} alt={user.name} src={user.avatarUrl} />
-          ))}
-        </AvatarGroup>
+        <AssigneeLetterAvatars
+          variant="grouped"
+          users={(task?.assignee ?? []).map((user) => ({
+            id: String(user.id),
+            name: user.name,
+          }))}
+        />
       </Stack>
     );
 

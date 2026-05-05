@@ -9,7 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import { varAlpha } from 'src/theme/styles';
 
 import { Iconify } from 'src/components/iconify';
-import { PaletteLetterAvatar } from 'src/components/palette-letter-avatar';
+import { AssigneeLetterAvatars } from 'src/components/assignee-letter-avatars';
 
 // ----------------------------------------------------------------------
 
@@ -54,11 +54,10 @@ export function AssigneePickerStrip({
       <Label sx={{ height: 40, lineHeight: '40px' }}>{label}</Label>
 
       <Box sx={{ gap: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
-        {shown.map((user) => (
-          <Tooltip key={user.id} title={user.name}>
-            <PaletteLetterAvatar paletteKey={user.id} displayName={user.name} />
-          </Tooltip>
-        ))}
+        <AssigneeLetterAvatars
+          variant="inline"
+          users={shown.map((user) => ({ id: user.id, name: user.name }))}
+        />
         {overflow > 0 ? (
           <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
             +{overflow}
