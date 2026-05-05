@@ -20,6 +20,7 @@ export function buildNewKanbanTask({ status, reporter }: BuildNewKanbanTaskInput
     labels: [],
     comments: [],
     assignee: [],
+    subtasks: [],
     due: [null, null],
     reporter,
   };

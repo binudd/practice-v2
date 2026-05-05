@@ -32,7 +32,8 @@ const MuiDialogContent: Components<Theme>['MuiDialogContent'] = {
     dividers: ({ theme }) => ({
       borderTop: 0,
       borderBottomStyle: 'dashed',
-      paddingBottom: theme.spacing(3),
+      // Root uses no vertical padding — add top padding so outlined `TextField` labels are not clipped
+      padding: theme.spacing(2, 3, 3),
     }),
   },
 };

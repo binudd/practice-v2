@@ -1,4 +1,5 @@
 import type { IKanbanAssignee } from 'src/types/kanban';
+import type { AssigneePickerAvatarUser } from 'src/components/assignee-picker-strip';
 
 import { _contacts } from 'src/_mock';
 
@@ -24,4 +25,14 @@ export function kanbanAssigneeFromContactId(contactId: string): IKanbanAssignee 
     phoneNumber: c.phoneNumber,
     lastActivity: c.lastActivity,
   };
+}
+
+/** For `AssigneePickerStrip` / forms: selected contact ids → avatar strip rows */
+export function kanbanAvatarUsersForContactIds(
+  contactIds: readonly string[]
+): AssigneePickerAvatarUser[] {
+  return contactIds
+    .map((id) => kanbanAssigneeFromContactId(id))
+    .filter((a): a is IKanbanAssignee => a != null)
+    .map((a) => ({ id: String(a.id), name: a.name, avatarUrl: a.avatarUrl }));
 }

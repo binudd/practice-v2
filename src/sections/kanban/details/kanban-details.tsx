@@ -1,4 +1,4 @@
-import type { IKanbanTask } from 'src/types/kanban';
+import type { IKanbanTask, IKanbanSubtask } from 'src/types/kanban';
 
 import dayjs from 'dayjs';
 import { useState, useCallback } from 'react';
@@ -33,6 +33,7 @@ import { useDateRangePicker, CustomDateRangePicker } from 'src/components/custom
 import { KanbanDetailsToolbar } from './kanban-details-toolbar';
 import { KanbanInputName } from '../components/kanban-input-name';
 import { KanbanDetailsPriority } from './kanban-details-priority';
+import { KanbanSubtaskAddDialog } from './kanban-subtask-add-form';
 import { KanbanDetailsAttachments } from './kanban-details-attachments';
 import { KanbanDetailsCommentList } from './kanban-details-comment-list';
 import { KanbanDetailsCommentInput } from './kanban-details-comment-input';
@@ -40,14 +41,6 @@ import { KanbanContactsDialog } from '../components/kanban-contacts-dialog';
 import { kanbanAssigneeFromContactId } from '../kanban-assignee-field-options';
 
 // ----------------------------------------------------------------------
-
-const SUBTASKS = [
-  'Complete project proposal',
-  'Conduct market research',
-  'Design user interface mockups',
-  'Develop backend api',
-  'Implement authentication system',
-];
 
 const StyledLabel = styled('span')(({ theme }) => ({
   ...theme.typography.caption,
@@ -80,11 +73,11 @@ export function KanbanDetails({
 
   const [taskName, setTaskName] = useState(task.name);
 
-  const [subtaskCompleted, setSubtaskCompleted] = useState(SUBTASKS.slice(0, 2));
-
   const like = useBoolean();
 
   const contacts = useBoolean();
+
+  const addSubtaskDialog = useBoolean();
 
   const [taskDescription, setTaskDescription] = useState(task.description);
 
@@ -134,13 +127,26 @@ export function KanbanDetails({
     [onUpdateTask, task]
   );
 
-  const handleClickSubtaskComplete = (taskId: string) => {
-    const selected = subtaskCompleted.includes(taskId)
-      ? subtaskCompleted.filter((value) => value !== taskId)
-      : [...subtaskCompleted, taskId];
+  const handleClickSubtaskComplete = useCallback(
+    (subtaskId: string) => {
+      const subtasks = task.subtasks ?? [];
+      onUpdateTask({
+        ...task,
+        subtasks: subtasks.map((s) =>
+          s.id === subtaskId ? { ...s, completed: !s.completed } : s
+        ),
+      });
+    },
+    [onUpdateTask, task]
+  );
 
-    setSubtaskCompleted(selected);
-  };
+  const handleAddSubtask = useCallback(
+    (subtask: IKanbanSubtask) => {
+      const subtasks = task.subtasks ?? [];
+      onUpdateTask({ ...task, subtasks: [...subtasks, subtask] });
+    },
+    [onUpdateTask, task]
+  );
 
   const renderToolbar = (
     <KanbanDetailsToolbar
@@ -282,32 +288,46 @@ export function KanbanDetails({
     </Box>
   );
 
+  const subtasks = task.subtasks ?? [];
+  const completedSubtasks = subtasks.filter((s) => s.completed).length;
+  const totalSubtasks = subtasks.length;
+  const progressPct = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
+
   const renderTabSubtasks = (
     <Box sx={{ gap: 3, display: 'flex', flexDirection: 'column' }}>
       <div>
         <Typography variant="body2" sx={{ mb: 1 }}>
-          {subtaskCompleted.length} of {SUBTASKS.length}
+          {completedSubtasks} of {totalSubtasks}
         </Typography>
 
-        <LinearProgress
-          variant="determinate"
-          value={(subtaskCompleted.length / SUBTASKS.length) * 100}
-        />
+        <LinearProgress variant="determinate" value={progressPct} />
       </div>
 
       <FormGroup>
-        {SUBTASKS.map((taskItem) => (
+        {subtasks.map((item) => (
           <FormControlLabel
-            key={taskItem}
+            key={item.id}
             control={
               <Checkbox
                 disableRipple
-                name={taskItem}
-                checked={subtaskCompleted.includes(taskItem)}
+                checked={item.completed}
+                onChange={() => handleClickSubtaskComplete(item.id)}
               />
             }
-            label={taskItem}
-            onChange={() => handleClickSubtaskComplete(taskItem)}
+            label={
+              <Box>
+                <Typography variant="subtitle2">{item.name}</Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  {item.hoursEstimated}h · {item.assignee.map((a) => a.name).join(', ')}
+                </Typography>
+                {item.description ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+                    {item.description}
+                  </Typography>
+                ) : null}
+              </Box>
+            }
+            sx={{ alignItems: 'flex-start', mb: 1 }}
           />
         ))}
       </FormGroup>
@@ -315,10 +335,18 @@ export function KanbanDetails({
       <Button
         variant="outlined"
         startIcon={<Iconify icon="mingcute:add-line" />}
+        onClick={addSubtaskDialog.onTrue}
         sx={{ alignSelf: 'flex-start' }}
       >
-        Subtask
+        Add subtask
       </Button>
+
+      <KanbanSubtaskAddDialog
+        key={String(task.id)}
+        open={addSubtaskDialog.value}
+        onClose={addSubtaskDialog.onFalse}
+        onAdded={handleAddSubtask}
+      />
     </Box>
   );
 
