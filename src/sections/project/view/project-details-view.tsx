@@ -6,6 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
+import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 
 import { paths } from 'src/routes/paths';
@@ -25,8 +26,8 @@ import { ProjectChatView } from 'src/sections/project/chat';
 import { ProjectMailView } from 'src/sections/project/mail';
 import { ProjectNotesView } from 'src/sections/project/notes';
 import { ProjectFilesView } from 'src/sections/project/files';
-import { KanbanView } from 'src/sections/kanban/view/kanban-view';
 import { ProjectExpenseView } from 'src/sections/project/expense';
+import { KanbanView } from 'src/sections/kanban/view/kanban-view';
 import { ProjectActivityView } from 'src/sections/project/activity';
 import { ProjectTaskTypesView } from 'src/sections/project/task-type';
 import { ProjectRecurringView } from 'src/sections/project/recurring';
@@ -38,12 +39,38 @@ import { Can } from 'src/auth/guard';
 import { ProjectOverviewPanel } from './project-overview-panel';
 import { PROJECT_DETAIL_QUERY_KEYS } from './project-detail-query-params';
 import {
+  useProjectKanbanToolbarSlot,
+  ProjectKanbanToolbarSlotProvider,
+} from './project-kanban-toolbar-slot';
+import {
   PROJECT_DETAIL_TABS,
   type ProjectDetailTabId,
   isValidProjectDetailTabId,
   PROJECT_DETAIL_DEFAULT_TAB,
   parseProjectDetailTabParam,
 } from './project-details-tabs';
+
+// ----------------------------------------------------------------------
+
+function ProjectKanbanToolbarAnchor({ visible }: { visible: boolean }) {
+  const slot = useProjectKanbanToolbarSlot();
+  if (!slot || !visible) return null;
+
+  return (
+    <Box
+      ref={slot.setToolbarEl}
+      sx={{
+        flexShrink: 0,
+        mb: 0.5,
+        display: 'flex',
+        alignItems: 'center',
+        columnGap: 2,
+        flexWrap: 'wrap',
+        rowGap: 1,
+      }}
+    />
+  );
+}
 
 // ----------------------------------------------------------------------
 
@@ -165,50 +192,64 @@ export function ProjectDetailsView({ id }: Props) {
   }
 
   return (
-    <DashboardContent
-      sx={{
-        flex: '1 1 auto',
-        minHeight: 0,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <Tabs
-        value={tab}
-        onChange={handleTabChange}
-        variant="scrollable"
-        scrollButtons="auto"
+    <ProjectKanbanToolbarSlotProvider>
+      <DashboardContent
         sx={{
-          mb: 2.5,
-          boxShadow: (theme) =>
-            `inset 0 -2px 0 0 ${varAlpha(theme.vars.palette.grey['500Channel'], 0.08)}`,
+          flex: '1 1 auto',
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        {PROJECT_DETAIL_TABS.map((t) => (
-          <Tab
-            key={t.value}
-            value={t.value}
-            label={t.label}
-            icon={<Iconify icon={t.icon} width={24} />}
-            iconPosition="start"
-          />
-        ))}
-      </Tabs>
-
-      {projectLoading ? (
-        <EmptyContent title="Loading..." />
-      ) : (
-        <Box
-          sx={{
-            flex: '1 1 auto',
-            minHeight: 0,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
+        <Stack
+          direction="row"
+          alignItems="flex-end"
+          justifyContent="space-between"
+          spacing={2}
+          sx={{ mb: 2.5 }}
         >
-          {renderTabPanel(tab, project)}
-        </Box>
-      )}
-    </DashboardContent>
+          <Tabs
+            value={tab}
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              mb: 0,
+              boxShadow: (theme) =>
+                `inset 0 -2px 0 0 ${varAlpha(theme.vars.palette.grey['500Channel'], 0.08)}`,
+            }}
+          >
+            {PROJECT_DETAIL_TABS.map((t) => (
+              <Tab
+                key={t.value}
+                value={t.value}
+                label={t.label}
+                icon={<Iconify icon={t.icon} width={24} />}
+                iconPosition="start"
+              />
+            ))}
+          </Tabs>
+
+          <ProjectKanbanToolbarAnchor visible={tab === 'kanban'} />
+        </Stack>
+
+        {projectLoading ? (
+          <EmptyContent title="Loading..." />
+        ) : (
+          <Box
+            sx={{
+              flex: '1 1 auto',
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {renderTabPanel(tab, project)}
+          </Box>
+        )}
+      </DashboardContent>
+    </ProjectKanbanToolbarSlotProvider>
   );
 }

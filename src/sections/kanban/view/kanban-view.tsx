@@ -9,12 +9,7 @@ import type {
   CollisionDetection,
 } from '@dnd-kit/core';
 
-import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-  horizontalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { createPortal } from 'react-dom';
 import {
   useRef,
   useMemo,
@@ -22,8 +17,13 @@ import {
   useEffect,
   useCallback,
   type ReactElement,
-  type MouseEvent as ReactMouseEvent,
 } from 'react';
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import {
   useSensor,
   DndContext,
@@ -43,12 +43,9 @@ import Card from '@mui/material/Card';
 import Menu from '@mui/material/Menu';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
-import ToggleButton from '@mui/material/ToggleButton';
 import { DataGrid, gridClasses } from '@mui/x-data-grid';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
@@ -75,6 +72,8 @@ import {
   useSetDashboardBreadcrumbs,
 } from 'src/components/dashboard-breadcrumbs';
 
+import { useProjectKanbanToolbarSlot } from 'src/sections/project/view/project-kanban-toolbar-slot';
+
 import { Can } from 'src/auth/guard';
 import { useAuthContext } from 'src/auth/hooks';
 import { hasPermission } from 'src/auth/permissions';
@@ -89,6 +88,7 @@ import { reporterFromAuthUser } from '../utils/reporter-from-auth';
 import { KanbanColumnSkeleton } from '../components/kanban-skeleton';
 import { KanbanDragOverlay } from '../components/kanban-drag-overlay';
 import { KanbanTaskBulkUpdateDialog } from '../kanban-task-bulk-update-dialog';
+import { KanbanBoardLayoutToggle } from '../components/kanban-board-layout-toggle';
 
 // ----------------------------------------------------------------------
 
@@ -122,19 +122,28 @@ type Props = {
    * Board markup, cssVars, and scroll height behavior are unchanged vs the full-page variant.
    */
   embedded?: boolean;
+  /**
+   * Hide board/list toggle in the browsing toolbar (inline or portaled beside project tabs).
+   */
+  hideLayoutToggle?: boolean;
 };
 
 export function KanbanView({
   projectId,
   title: _title = 'My Work',
   embedded = false,
+  hideLayoutToggle,
 }: Props = {}) {
+  const omitLayoutToggle = hideLayoutToggle ?? false;
+
+  const projectDetailToolbarSlot = useProjectKanbanToolbarSlot();
+  const projectDetailToolbarEl = projectDetailToolbarSlot?.toolbarEl ?? null;
+
   const { board, boardLoading, boardEmpty } = useGetBoard(projectId);
 
   const kanbanScopeKey = projectId ?? 'global';
   const layoutMode: KanbanBoardLayoutMode =
     useUIPreferencesStoreKanban(kanbanScopeKey);
-  const setKanbanLayout = useUIPreferencesStore((s) => s.setKanbanLayout);
 
   const { user } = useAuthContext();
 
@@ -293,12 +302,6 @@ export function KanbanView({
       recentlyMovedToNewContainer.current = false;
     });
   }, []);
-
-  const handleChangeLayoutMode = (_event: ReactMouseEvent<HTMLElement>, mode: KanbanBoardLayoutMode | null) => {
-    if (mode !== null) {
-      setKanbanLayout(kanbanScopeKey, mode);
-    }
-  };
 
   const onDragStart = ({ active }: DragStartEvent) => {
     setActiveId(active.id);
@@ -594,83 +597,77 @@ export function KanbanView({
     </Card>
   );
 
-  const renderBrowsingChrome = (
-    <Stack sx={{ flex: '1 1 0', minHeight: 0, width: 1 }}>
+  const toolbarPortaledBesideTabs =
+    embedded &&
+    projectDetailToolbarEl !== null &&
+    projectDetailToolbarEl.isConnected &&
+    !boardLoading &&
+    !boardEmpty;
+
+  const browsingToolbarChrome = (
+    <Stack
+      direction="row"
+      alignItems="center"
+      flexWrap="wrap"
+      columnGap={2}
+      rowGap={1}
+      sx={{ mb: toolbarPortaledBesideTabs ? 0 : 2 }}
+    >
+      <Stack direction="row" alignItems="center" flexWrap="wrap" spacing={2}>
+        {!omitLayoutToggle ? (
+          <KanbanBoardLayoutToggle scopeKey={kanbanScopeKey} />
+        ) : null}
+      </Stack>
+
       <Stack
         direction="row"
         alignItems="center"
+        spacing={1.5}
         flexWrap="wrap"
-        justifyContent="space-between"
-        columnGap={2}
-        rowGap={1}
-        sx={{ mb: 2 }}
+        sx={{ ml: 'auto' }}
       >
-        <Stack direction="row" alignItems="center" flexWrap="wrap" spacing={2}>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={layoutMode}
-            onChange={handleChangeLayoutMode}
-          >
-            <ToggleButton value="board" aria-label="Board columns">
-              <Tooltip title="Board">
-                <Iconify icon="mingcute:dot-grid-fill" />
-              </Tooltip>
-            </ToggleButton>
-            <ToggleButton value="list" aria-label="Task list">
-              <Tooltip title="List">
-                <Iconify icon="solar:list-bold" />
-              </Tooltip>
-            </ToggleButton>
-          </ToggleButtonGroup>
-
-          {bulkPermission && board.columns.length > 0 ? (
-            <>
-              <Can perm="task:update">
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<Iconify icon="mingcute:add-line" />}
-                  onClick={handleOpenNewTaskMenu}
-                >
-                  New task
-                </Button>
-              </Can>
-              <Menu
-                anchorEl={newTaskMenuAnchorEl}
-                open={Boolean(newTaskMenuAnchorEl)}
-                onClose={handleCloseNewTaskMenu}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-              >
-                {board.columns.map((col) => (
-                  <MenuItem
-                    key={String(col.id)}
-                    onClick={() => handlePickColumnNewTask(col.id, col.name)}
-                  >
-                    {col.name}
-                  </MenuItem>
-                ))}
-              </Menu>
-            </>
-          ) : null}
-        </Stack>
-
-        {bulkSelectionEligible ? (
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={1.5}
-            flexWrap="wrap"
-            sx={{ ml: { sm: 'auto' } }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              {selectedKanbanCount > 0
-                ? `${selectedKanbanCount} selected`
-                : 'Select rows for bulk updates'}
-            </Typography>
+        {bulkPermission && board.columns.length > 0 ? (
+          <>
             <Can perm="task:update">
               <Button
+                color="primary"
+                variant="contained"
+                size="small"
+                startIcon={<Iconify icon="mingcute:add-line" />}
+                onClick={handleOpenNewTaskMenu}
+              >
+                New task
+              </Button>
+            </Can>
+            <Menu
+              anchorEl={newTaskMenuAnchorEl}
+              open={Boolean(newTaskMenuAnchorEl)}
+              onClose={handleCloseNewTaskMenu}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+              {board.columns.map((col) => (
+                <MenuItem
+                  key={String(col.id)}
+                  onClick={() => handlePickColumnNewTask(col.id, col.name)}
+                >
+                  {col.name}
+                </MenuItem>
+              ))}
+            </Menu>
+          </>
+        ) : null}
+
+        {bulkSelectionEligible ? (
+          <>
+            {selectedKanbanCount > 0 ? (
+              <Typography variant="body2" color="text.secondary">
+                {selectedKanbanCount} selected
+              </Typography>
+            ) : null}
+            <Can perm="task:update">
+              <Button
+                color="secondary"
                 variant="contained"
                 size="small"
                 disabled={bulkTargetsResolved.length === 0}
@@ -680,9 +677,20 @@ export function KanbanView({
                 Update
               </Button>
             </Can>
-          </Stack>
+          </>
         ) : null}
       </Stack>
+    </Stack>
+  );
+
+  const projectDetailKanbanToolbarPortal =
+    toolbarPortaledBesideTabs && projectDetailToolbarEl
+      ? createPortal(browsingToolbarChrome, projectDetailToolbarEl)
+      : null;
+
+  const renderBrowsingChrome = (
+    <Stack sx={{ flex: '1 1 0', minHeight: 0, width: 1 }}>
+      {toolbarPortaledBesideTabs ? null : browsingToolbarChrome}
 
       <Box sx={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', width: 1 }}>
         {layoutMode === 'board' ? renderKanbanBoard : renderKanbanTaskList}
@@ -736,6 +744,7 @@ export function KanbanView({
   if (embedded) {
     return (
       <Box sx={shellSx}>
+        {projectDetailKanbanToolbarPortal}
         {bodyContent}
         {overlays}
       </Box>
